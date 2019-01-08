@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
   try
   {
     Peaclock clock;
+    clock.run();
   }
   catch(std::exception const& e)
   {
