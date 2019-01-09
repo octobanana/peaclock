@@ -7,9 +7,68 @@
 #include <vector>
 #include <limits>
 #include <utility>
+#include <optional>
+#include <regex>
 
 namespace OB::String
 {
+
+std::string trim(std::string str)
+{
+  auto start = str.find_first_not_of(" \t\n\r\f\v");
+
+  if (start != std::string::npos)
+  {
+    auto end = str.find_last_not_of(" \t\n\r\f\v");
+    str = str.substr(start, end - start + 1);
+
+    return str;
+  }
+
+  return {};
+}
+
+std::optional<std::vector<std::string>> match(std::string const& str, std::regex rx)
+{
+  std::smatch m;
+
+  if (std::regex_match(str, m, rx, std::regex_constants::match_not_null))
+  {
+    std::vector<std::string> v;
+
+    for (auto const& e : m)
+    {
+      v.emplace_back(std::string(e));
+    }
+
+    return v;
+  }
+
+  return {};
+}
+
+std::string repeat(std::string const& str, std::size_t num)
+{
+  if (num == 0)
+  {
+    return {};
+  }
+
+  if (num == 1)
+  {
+    return str;
+  }
+
+  std::string res;
+  res.reserve(str.size() * num);
+
+  for (std::size_t i {0}; i < num; ++i)
+  {
+    res += str;
+  }
+
+  return res;
+}
 
 bool starts_with(std::string const& str, std::string const& val)
 {

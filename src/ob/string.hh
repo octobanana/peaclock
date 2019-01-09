@@ -4,9 +4,17 @@
 #include <cstddef>
 
 #include <string>
+#include <optional>
+#include <regex>
 
 namespace OB::String
 {
+
+std::string trim(std::string str);
+
+std::optional<std::vector<std::string>> match(std::string const& str, std::regex rx);
+
+std::string repeat(std::string const& str, std::size_t num);
 
 bool starts_with(std::string const& str, std::string const& val);
 
