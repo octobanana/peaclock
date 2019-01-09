@@ -74,6 +74,7 @@ void Peaclock::event_loop()
 
   // command prompt strings
   std::string prompt {aec::wrap(":", aec::fg_white)};
+  std::string prompt_buf;
   int prompt_clear_sec {2};
   int prompt_clear {0};
 
@@ -92,9 +93,13 @@ void Peaclock::event_loop()
     // check if command prompt message is active
     if (prompt_clear > 0)
     {
-      // clear screen leaving command prompt message intact
+      // clear screen with command prompt message
       --prompt_clear;
       std::cout
+      << aec::cursor_set(0, height)
+      << aec::wrap("?", aec::fg_white)
+      << aec::wrap(prompt_buf.substr(0, width - 2), aec::fg_red)
+      << aec::cursor_up
       << aec::erase_up
       << aec::cursor_home
       << std::flush;
@@ -133,6 +138,16 @@ void Peaclock::event_loop()
 
       // set the binary clock
       _binary_clock = _binary_clock_clear;
+
+      if (_config.hour_24)
+      {
+        _binary_clock.at(12) = 0;
+      }
+      else
+      {
+        _binary_clock.at(12) = -1;
+      }
+
       for (std::size_t col {0}; col < 6; ++col)
       {
         set_binary_clock(col, _digital_clock.at(col));
@@ -404,9 +419,10 @@ void Peaclock::event_loop()
             }
             else
             {
+              prompt_buf = input;
               std::cout
               << aec::wrap("?", aec::fg_white)
-              << aec::wrap(input, aec::fg_red);
+              << aec::wrap(prompt_buf.substr(0, width - 2), aec::fg_red);
               prompt_clear = prompt_clear_sec;
             }
 
@@ -433,9 +449,14 @@ int Peaclock::ctrl_key(int c)
 
 std::string Peaclock::readline(std::string const& prompt, bool& is_running)
 {
-  std::string input;
-  std::size_t input_index {0};
-  std::string input_buf;
+  struct Input
+  {
+    std::size_t idx {0};
+    std::size_t off {0};
+    std::string buf;
+    std::string str;
+    std::string fmt;
+  } input;
 
   char seq[3];
 
@@ -470,7 +491,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
         {
           // exit the command prompt
           loop = false;
-          input.clear();
+          input.str.clear();
           break;
         }
 
@@ -496,28 +517,63 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                 {
                   // key_del
                   // erase char under cursor
-                  if (input_index < input.size())
+                  if (input.off + input.idx < input.str.size())
                   {
-                    input.erase(input_index, 1);
-                    _history_index = _history.size();
+                    if (input.idx + 2 < width)
+                    {
+                      input.str.erase(input.off + input.idx, 1);
+                    }
+                    else
+                    {
+                      input.str.erase(input.idx, 1);
+                    }
+
+                    input.fmt = input.str.substr(input.off, width - 2);
 
                     std::cout
-                      << aec::cursor_hide
-                      << aec::cursor_save
-                      << aec::cr
-                      << aec::erase_line
-                      << prompt
-                      << input
-                      << aec::cursor_load
-                      << aec::cursor_show
-                      << std::flush;
-                  }
+                    << aec::cursor_hide
+                    << aec::cr
+                    << aec::erase_line
+                    << prompt
+                    << input.fmt
+                    << aec::cursor_set(input.idx + 2, height)
+                    << aec::cursor_show
+                    << std::flush;
 
-                  // exit the command prompt
-                  else if (input.empty())
+                    _history_index = _history.size();
+                  }
+                  else if (input.off || input.idx)
                   {
+                    if (input.off)
+                    {
+                      input.str.erase(input.off + input.idx - 1, 1);
+                      --input.off;
+                    }
+                    else
+                    {
+                      --input.idx;
+                      input.str.erase(input.idx, 1);
+                    }
+
+                    input.fmt = input.str.substr(input.off, width - 2);
+
+                    std::cout
+                    << aec::cursor_hide
+                    << aec::cr
+                    << aec::erase_line
+                    << prompt
+                    << input.fmt
+                    << aec::cursor_set(input.idx + 2, height)
+                    << aec::cursor_show
+                    << std::flush;
+
+                    _history_index = _history.size();
+                  }
+                  else if (input.str.empty())
+                  {
+                    // exit the command prompt
                     loop = false;
-                    input.clear();
+                    input.str.clear();
                     break;
                   }
 
@@ -545,19 +601,31 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                 {
                   if (_history_index == _history.size())
                   {
-                    input_buf = input;
+                    input.buf = input.str;
                   }
 
                   --_history_index;
-                  input = _history.at(_history_index);
-                  input_index = input.size();
+                  input.str = _history.at(_history_index);
+
+                  if (input.str.size() + 1 >= width)
+                  {
+                    input.off = input.str.size() - width + 2;
+                    input.idx = width - 2;
+                    input.fmt = input.str.substr(input.off, width - 2);
+                  }
+                  else
+                  {
+                    input.idx = input.str.size();
+                    input.fmt = input.str;
+                  }
 
                   std::cout
                   << aec::cursor_hide
                   << aec::cr
                   << aec::erase_line
                   << prompt
-                  << input
+                  << input.fmt
+                  << aec::cursor_set(input.idx + 2, height)
                   << aec::cursor_show
                   << std::flush;
                 }
@@ -573,20 +641,32 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                   ++_history_index;
                   if (_history_index == _history.size())
                   {
-                    input = input_buf;
+                    input.str = input.buf;
                   }
                   else
                   {
-                    input = _history.at(_history_index);
+                    input.str = _history.at(_history_index);
                   }
-                  input_index = input.size();
+
+                  if (input.str.size() + 1 >= width)
+                  {
+                    input.off = input.str.size() - width + 2;
+                    input.idx = width - 2;
+                    input.fmt = input.str.substr(input.off, width - 2);
+                  }
+                  else
+                  {
+                    input.idx = input.str.size();
+                    input.fmt = input.str;
+                  }
 
                   std::cout
                   << aec::cursor_hide
                   << aec::cr
                   << aec::erase_line
                   << prompt
-                  << input
+                  << input.fmt
+                  << aec::cursor_set(input.idx + 2, height)
                   << aec::cursor_show
                   << std::flush;
                 }
@@ -597,12 +677,27 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
               {
                 // key_right
                 // move cursor right
-                if (input_index < input.size())
+                if (input.off + input.idx < input.str.size())
                 {
-                  ++input_index;
+                  if (input.idx + 2 < width)
+                  {
+                    ++input.idx;
+                  }
+                  else
+                  {
+                    ++input.off;
+                    input.fmt = input.str.substr(input.off, width - 2);
+                  }
+
                   std::cout
-                    << aec::cursor_right
-                    << std::flush;
+                  << aec::cursor_hide
+                  << aec::cr
+                  << aec::erase_line
+                  << prompt
+                  << input.fmt
+                  << aec::cursor_set(input.idx + 2, height)
+                  << aec::cursor_show
+                  << std::flush;
                 }
                 break;
               }
@@ -611,12 +706,27 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
               {
                 // key_left
                 // move cursor left
-                if (input_index)
+                if (input.off || input.idx)
                 {
-                  --input_index;
+                  if (input.idx)
+                  {
+                    --input.idx;
+                  }
+                  else
+                  {
+                    --input.off;
+                    input.fmt = input.str.substr(input.off, width - 2);
+                  }
+
                   std::cout
-                    << aec::cursor_left
-                    << std::flush;
+                  << aec::cursor_hide
+                  << aec::cr
+                  << aec::erase_line
+                  << prompt
+                  << input.fmt
+                  << aec::cursor_set(input.idx + 2, height)
+                  << aec::cursor_show
+                  << std::flush;
                 }
                 break;
               }
@@ -639,7 +749,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
       {
         // exit the main event loop
         is_running = false;
-        input.clear();
+        input.str.clear();
         break;
       }
 
@@ -655,12 +765,27 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
       if (static_cast<int>(c) == ctrl_key('f'))
       {
         // move cursor right
-        if (input_index < input.size())
+        if (input.off + input.idx < input.str.size())
         {
-          ++input_index;
+          if (input.idx + 2 < width)
+          {
+            ++input.idx;
+          }
+          else
+          {
+            ++input.off;
+            input.fmt = input.str.substr(input.off, width - 2);
+          }
+
           std::cout
-            << aec::cursor_right
-            << std::flush;
+          << aec::cursor_hide
+          << aec::cr
+          << aec::erase_line
+          << prompt
+          << input.fmt
+          << aec::cursor_set(input.idx + 2, height)
+          << aec::cursor_show
+          << std::flush;
         }
         break;
       }
@@ -669,12 +794,29 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
       if (static_cast<int>(c) == ctrl_key('e'))
       {
         // move cursor to end of line
-        if (input_index < input.size())
+        if (input.off + input.idx < input.str.size())
         {
-          input_index = input.size();
+          if (input.str.size() + 1 >= width)
+          {
+            input.off = input.str.size() - width + 2;
+            input.idx = width - 2;
+            input.fmt = input.str.substr(input.off, width - 2);
+          }
+          else
+          {
+            input.idx = input.str.size();
+            input.fmt = input.str;
+          }
+
           std::cout
-            << aec::cursor_set(input_index + 2, height)
-            << std::flush;
+          << aec::cursor_hide
+          << aec::cr
+          << aec::erase_line
+          << prompt
+          << input.fmt
+          << aec::cursor_set(input.idx + 2, height)
+          << aec::cursor_show
+          << std::flush;
         }
         break;
       }
@@ -683,12 +825,29 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
       if (static_cast<int>(c) == ctrl_key('a'))
       {
         // move cursor to start of line
-        if (input_index)
+        if (input.idx || input.off)
         {
-          input_index = 0;
+          input.idx = 0;
+          input.off = 0;
+
+          if (input.str.size() + 1 >= width)
+          {
+            input.fmt = input.str.substr(input.off, width - 2);
+          }
+          else
+          {
+            input.fmt = input.str;
+          }
+
           std::cout
-            << aec::cursor_set(input_index + 2, height)
-            << std::flush;
+          << aec::cursor_hide
+          << aec::cr
+          << aec::erase_line
+          << prompt
+          << input.fmt
+          << aec::cursor_set(input.idx + 2, height)
+          << aec::cursor_show
+          << std::flush;
         }
         break;
       }
@@ -711,67 +870,78 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
       if (static_cast<int>(c) == 127 || static_cast<int>(c) == ctrl_key('h'))
       {
         // erase char behind cursor
-        if (input_index)
+        if (input.off || input.idx)
         {
-          input.erase(input_index - 1, 1);
-          --input_index;
-          _history_index = _history.size();
+          if (input.off)
+          {
+            input.str.erase(input.off + input.idx - 1, 1);
+            --input.off;
+          }
+          else
+          {
+            --input.idx;
+            input.str.erase(input.idx, 1);
+          }
+
+          input.fmt = input.str.substr(input.off, width - 2);
 
           std::cout
-            << aec::cursor_hide
-            << aec::cursor_save
-            << aec::cr
-            << aec::erase_line
-            << prompt
-            << input
-            << aec::cursor_load
-            << aec::cursor_left
-            << aec::cursor_show
-            << std::flush;
+          << aec::cursor_hide
+          << aec::cr
+          << aec::erase_line
+          << prompt
+          << input.fmt
+          << aec::cursor_set(input.idx + 2, height)
+          << aec::cursor_show
+          << std::flush;
+
+          _history_index = _history.size();
         }
 
         // exit the command prompt
-        else if (input.empty())
+        else if (input.str.empty())
         {
           loop = false;
-          input.clear();
+          input.str.clear();
           break;
         }
 
         break;
       }
 
-      if (input.size() + 2 >= width)
-      {
-        break;
-      }
-
       // insert or append char to input buffer
-      if (input_index < input.size())
+      if (input.idx + 2 < width)
       {
-        input.insert(input_index, 1, c);
-        ++input_index;
+        input.str.insert(input.off + input.idx, 1, c);
+        ++input.idx;
+      }
+      else if (input.idx + 2 >= width)
+      {
+        input.str.insert(input.off + input.idx, 1, c);
+        ++input.off;
       }
       else
       {
-        input += c;
-        ++input_index;
+        input.str += c;
+        ++input.off;
       }
 
-      _history_index = _history.size();
+      input.fmt = input.str.substr(input.off, width - 2);
 
       // echo input buffer to stdout
       std::cout
-        << aec::cursor_hide
-        << aec::cursor_save
-        << aec::cr
-        << aec::erase_line
-        << prompt
-        << input
-        << aec::cursor_load
-        << aec::cursor_right
-        << aec::cursor_show
-        << std::flush;
+      << aec::cursor_hide
+      << aec::cr
+      << aec::erase_line
+      << prompt
+      << input.fmt
+      << aec::cursor_set(input.idx + 2, height)
+      << aec::cursor_show
+      << std::flush;
+
+      // set history index to end
+      _history_index = _history.size();
+
     }
 
     if (num_read == 0)
@@ -780,7 +950,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
     }
   }
 
-  return input;
+  return input.str;
 }
 
 void Peaclock::extract_digits(int num, int& t0, int& t1)
