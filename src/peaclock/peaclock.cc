@@ -165,7 +165,11 @@ void Peaclock::event_loop()
         set_binary_clock(col, _digital_clock.at(col));
       }
 
-      buf << offset_height(height);
+      // get width and height offsets
+      auto offset_width_str = offset_width(width);
+      auto offset_height_str = offset_height(height);
+
+      buf << offset_height_str;
 
       // draw binary clock
       if (_config.binary_clock)
@@ -175,7 +179,7 @@ void Peaclock::event_loop()
         {
           if (col == 1)
           {
-            buf << offset_width(width);
+            buf << offset_width_str;
           }
 
           if (e == -1)
@@ -222,7 +226,7 @@ void Peaclock::event_loop()
       // draw digital clock
       if (_config.digital_clock)
       {
-        buf << offset_width(width);
+        buf << offset_width_str;
 
         for (std::size_t i {0}; i < _digital_clock.size(); ++i)
         {
