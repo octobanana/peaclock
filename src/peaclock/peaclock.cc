@@ -15,6 +15,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <chrono>
 #include <thread>
 #include <algorithm>
+#include <regex>
 
 Peaclock::Peaclock()
 {
@@ -283,7 +284,12 @@ void Peaclock::event_loop()
             << std::flush;
 
             // read user input
-            auto input {OB::String::trim(readline(prompt, is_running))};
+            auto input {readline(prompt, is_running)};
+            input = std::regex_replace
+            (
+              OB::String::trim(input), std::regex("\\s+"),
+              " ", std::regex_constants::match_not_null
+            );
 
             std::cout
             << aec::cursor_hide
