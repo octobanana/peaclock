@@ -31,6 +31,8 @@ private:
   std::string offset_width(std::size_t width);
   std::string offset_height(std::size_t height);
 
+  std::string check_window_size(std::size_t width, std::size_t height);
+
   using Clock = std::vector<int>;
 
   Clock _digital_clock

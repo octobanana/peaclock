@@ -16,6 +16,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <thread>
 #include <algorithm>
 #include <regex>
+#include <utility>
 
 Peaclock::Peaclock()
 {
@@ -27,13 +28,6 @@ Peaclock::~Peaclock()
 
 void Peaclock::run()
 {
-  // width and height of the terminal
-  std::size_t width {0};
-  std::size_t height {0};
-
-  // get the terminal width and height
-  OB::Term::size(width, height);
-
   // clear screen
   std::cout
   << aec::cursor_hide
@@ -48,8 +42,9 @@ void Peaclock::run()
   // start the event loop
   event_loop();
 
-  // get the terminal width and height
-  OB::Term::size(width, height);
+  // get height of terminal
+  std::size_t height {0};
+  OB::Term::height(height);
 
   // clear screen
   std::cout
@@ -85,11 +80,27 @@ void Peaclock::event_loop()
   // each loop iteration should take around 1 second
   while (is_running)
   {
-    // get the terminal width and height
-    OB::Term::size(width, height);
-
     // clear output buffer
     buf.str("");
+
+    // get the terminal width and height
+    OB::Term::size(width, height);
+    buf.str(check_window_size(width, height));
+
+    if (! buf.str().empty())
+    {
+      std::cout
+      << aec::cursor_set(0, height);
+      OB::Algorithm::for_each(height, [](auto) {
+        std::cout
+        << aec::erase_line
+        << aec::cursor_up;
+      });
+      std::cout
+      << buf.str()
+      << std::flush;
+      goto handle_input;
+    }
 
     // check if command prompt message is active
     if (prompt_clear > 0)
@@ -240,6 +251,7 @@ void Peaclock::event_loop()
     }
 
     // handle input
+handle_input:
     {
       char c {0};
       int num_read {0};
@@ -1032,4 +1044,62 @@ std::string Peaclock::offset_height(std::size_t height)
   }
 
   return OB::String::repeat("\n" , y_offset);
+}
+
+std::string Peaclock::check_window_size(std::size_t width, std::size_t height)
+{
+  std::size_t width_min {11};
+  if (_config.compact)
+  {
+    width_min = 8;
+  }
+
+  std::size_t height_min {6};
+  if (! _config.binary_clock)
+  {
+    height_min = 2;
+  }
+  else if (! _config.digital_clock)
+  {
+    height_min = 5;
+  }
+
+  bool width_invalid {width < width_min};
+  bool height_invalid {height < height_min};
+
+  if (width_invalid || height_invalid)
+  {
+    std::ostringstream msg;
+
+    if (width_invalid && height_invalid)
+    {
+      msg
+      << "Error: width ("
+      << width_min
+      << " min) & height ("
+      << height_min
+      << " min)"
+      << "\n";
+    }
+    else if (width_invalid)
+    {
+      msg
+      << "Error: width ("
+      << width_min
+      << " min)"
+      << "\n";
+    }
+    else
+    {
+      msg
+      << "Error: height ("
+      << height_min
+      << " min)"
+      << "\n";
+    }
+
+    return msg.str();
+  }
+
+  return {};
 }
