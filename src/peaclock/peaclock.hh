@@ -23,7 +23,7 @@ private:
   void event_loop();
 
   int ctrl_key(int c);
-  std::string readline(std::string const& prompt, bool& is_running);
+  std::string readline(std::string const& prompt_ref, bool& is_running);
 
   void extract_digits(int num, int& t0, int& t1);
   void set_binary_clock(std::size_t col, int num);

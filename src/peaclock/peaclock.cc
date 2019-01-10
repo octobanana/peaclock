@@ -469,8 +469,15 @@ int Peaclock::ctrl_key(int c)
 }
 
 
-std::string Peaclock::readline(std::string const& prompt, bool& is_running)
+std::string Peaclock::readline(std::string const& prompt_ref, bool& is_running)
 {
+  std::string prompt {prompt_ref};
+
+  // width and height of the terminal
+  std::size_t width {0};
+  std::size_t height {0};
+  OB::Term::size(width, height);
+
   struct Input
   {
     std::size_t idx {0};
@@ -480,6 +487,39 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
     std::string fmt;
   } input;
 
+  auto const render_line = [&]()
+  {
+    prompt = prompt_ref;
+
+    if (input.str.size() + 2 > width)
+    {
+      if (! input.off)
+      {
+        input.fmt += aec::wrap(">", aec::fg_true("#424854"));
+      }
+      else if (input.off + width - 2 < input.str.size())
+      {
+        prompt = aec::wrap("<", aec::fg_true("#424854"));
+        input.fmt += aec::wrap(">", aec::fg_true("#424854"));
+      }
+      else
+      {
+        prompt = aec::wrap("<", aec::fg_true("#424854"));
+        input.fmt = input.fmt.substr(0, width - 2);
+      }
+    }
+
+    std::cout
+    << aec::cursor_hide
+    << aec::cr
+    << aec::erase_line
+    << prompt
+    << input.fmt
+    << aec::cursor_set(input.idx + 2, height)
+    << aec::cursor_show
+    << std::flush;
+  };
+
   char seq[3];
 
   char c {0};
@@ -488,14 +528,9 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
   bool loop {true};
   auto wait {std::chrono::milliseconds(50)};
 
-  // width and height of the terminal
-  std::size_t width {0};
-  std::size_t height {0};
-  OB::Term::size(width, height);
-
   std::cout
-    << prompt
-    << std::flush;
+  << prompt
+  << std::flush;
 
   while (loop && is_running)
   {
@@ -552,15 +587,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
 
                     input.fmt = input.str.substr(input.off, width - 2);
 
-                    std::cout
-                    << aec::cursor_hide
-                    << aec::cr
-                    << aec::erase_line
-                    << prompt
-                    << input.fmt
-                    << aec::cursor_set(input.idx + 2, height)
-                    << aec::cursor_show
-                    << std::flush;
+                    render_line();
 
                     _history_index = _history.size();
                   }
@@ -579,15 +606,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
 
                     input.fmt = input.str.substr(input.off, width - 2);
 
-                    std::cout
-                    << aec::cursor_hide
-                    << aec::cr
-                    << aec::erase_line
-                    << prompt
-                    << input.fmt
-                    << aec::cursor_set(input.idx + 2, height)
-                    << aec::cursor_show
-                    << std::flush;
+                    render_line();
 
                     _history_index = _history.size();
                   }
@@ -641,15 +660,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                     input.fmt = input.str;
                   }
 
-                  std::cout
-                  << aec::cursor_hide
-                  << aec::cr
-                  << aec::erase_line
-                  << prompt
-                  << input.fmt
-                  << aec::cursor_set(input.idx + 2, height)
-                  << aec::cursor_show
-                  << std::flush;
+                  render_line();
                 }
                 break;
               }
@@ -682,15 +693,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                     input.fmt = input.str;
                   }
 
-                  std::cout
-                  << aec::cursor_hide
-                  << aec::cr
-                  << aec::erase_line
-                  << prompt
-                  << input.fmt
-                  << aec::cursor_set(input.idx + 2, height)
-                  << aec::cursor_show
-                  << std::flush;
+                  render_line();
                 }
                 break;
               }
@@ -708,18 +711,11 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                   else
                   {
                     ++input.off;
-                    input.fmt = input.str.substr(input.off, width - 2);
                   }
 
-                  std::cout
-                  << aec::cursor_hide
-                  << aec::cr
-                  << aec::erase_line
-                  << prompt
-                  << input.fmt
-                  << aec::cursor_set(input.idx + 2, height)
-                  << aec::cursor_show
-                  << std::flush;
+                  input.fmt = input.str.substr(input.off, width - 2);
+
+                  render_line();
                 }
                 break;
               }
@@ -737,18 +733,11 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
                   else
                   {
                     --input.off;
-                    input.fmt = input.str.substr(input.off, width - 2);
                   }
 
-                  std::cout
-                  << aec::cursor_hide
-                  << aec::cr
-                  << aec::erase_line
-                  << prompt
-                  << input.fmt
-                  << aec::cursor_set(input.idx + 2, height)
-                  << aec::cursor_show
-                  << std::flush;
+                  input.fmt = input.str.substr(input.off, width - 2);
+
+                  render_line();
                 }
                 break;
               }
@@ -799,15 +788,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
             input.fmt = input.str.substr(input.off, width - 2);
           }
 
-          std::cout
-          << aec::cursor_hide
-          << aec::cr
-          << aec::erase_line
-          << prompt
-          << input.fmt
-          << aec::cursor_set(input.idx + 2, height)
-          << aec::cursor_show
-          << std::flush;
+          render_line();
         }
         break;
       }
@@ -830,15 +811,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
             input.fmt = input.str;
           }
 
-          std::cout
-          << aec::cursor_hide
-          << aec::cr
-          << aec::erase_line
-          << prompt
-          << input.fmt
-          << aec::cursor_set(input.idx + 2, height)
-          << aec::cursor_show
-          << std::flush;
+          render_line();
         }
         break;
       }
@@ -861,15 +834,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
             input.fmt = input.str;
           }
 
-          std::cout
-          << aec::cursor_hide
-          << aec::cr
-          << aec::erase_line
-          << prompt
-          << input.fmt
-          << aec::cursor_set(input.idx + 2, height)
-          << aec::cursor_show
-          << std::flush;
+          render_line();
         }
         break;
       }
@@ -907,15 +872,7 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
 
           input.fmt = input.str.substr(input.off, width - 2);
 
-          std::cout
-          << aec::cursor_hide
-          << aec::cr
-          << aec::erase_line
-          << prompt
-          << input.fmt
-          << aec::cursor_set(input.idx + 2, height)
-          << aec::cursor_show
-          << std::flush;
+          render_line();
 
           _history_index = _history.size();
         }
@@ -950,20 +907,10 @@ std::string Peaclock::readline(std::string const& prompt, bool& is_running)
 
       input.fmt = input.str.substr(input.off, width - 2);
 
-      // echo input buffer to stdout
-      std::cout
-      << aec::cursor_hide
-      << aec::cr
-      << aec::erase_line
-      << prompt
-      << input.fmt
-      << aec::cursor_set(input.idx + 2, height)
-      << aec::cursor_show
-      << std::flush;
+      render_line();
 
       // set history index to end
       _history_index = _history.size();
-
     }
 
     if (num_read == 0)
