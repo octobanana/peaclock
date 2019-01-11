@@ -4,6 +4,8 @@
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
+#include "peaclock/readline.hh"
+
 #include <cstddef>
 
 #include <string>
@@ -22,16 +24,17 @@ private:
 
   void event_loop();
 
-  int ctrl_key(int c);
-  std::string readline(std::string const& prompt_ref, bool& is_running);
+  int ctrl_key(int c) const;
 
-  void extract_digits(int num, int& t0, int& t1);
+  void extract_digits(int num, int& t0, int& t1) const;
   void set_binary_clock(std::size_t col, int num);
 
-  std::string offset_width(std::size_t width);
-  std::string offset_height(std::size_t height);
+  std::string offset_width(std::size_t width) const;
+  std::string offset_height(std::size_t height) const;
 
-  std::string check_window_size(std::size_t width, std::size_t height);
+  std::string check_window_size(std::size_t width, std::size_t height) const;
+
+  Readline readline;
 
   using Clock = std::vector<int>;
 
@@ -52,10 +55,6 @@ private:
 
   Clock const _binary_clock_clear = _binary_clock;
 
-  // command prompt history buffer
-  std::vector<std::string> _history;
-  std::size_t _history_index;
-
   struct Config
   {
     bool hour_24 {true};
@@ -72,8 +71,6 @@ private:
       std::string inactive {aec::fg_true("#424854")};
     } style;
   } _config;
-
-  Config _config_clear;
 };
 
 #endif // PEACLOCK_HH

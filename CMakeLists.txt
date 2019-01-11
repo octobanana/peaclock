@@ -40,6 +40,7 @@ set (SOURCES
   src/main.cc
   src/ob/string.cc
   src/peaclock/peaclock.cc
+  src/peaclock/readline.cc
 )
 
 set (HEADERS
