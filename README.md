@@ -1,8 +1,10 @@
 # Peaclock
 A colourful binary clock for the terminal.
 
-![default](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/peaclock.png)
+![default](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/default.png)
+
 ![binary](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/binary.png)
+
 ![digital](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/digital.png)
 
 ## About
