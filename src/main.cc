@@ -16,7 +16,7 @@ int program_options(Parg& pg);
 
 int program_options(Parg& pg)
 {
-  pg.name("peaclock").version("0.1.1 (11.01.2019)");
+  pg.name("peaclock").version("0.1.2 (11.01.2019)");
   pg.description("A colourful binary clock for the terminal.");
   pg.usage("[-v|--version]");
   pg.usage("[-h|--help]");
