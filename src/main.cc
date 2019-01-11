@@ -54,18 +54,7 @@ int program_options(Parg& pg)
   pg.set("help,h", "print the help output");
   pg.set("version,v", "print the program version");
 
-  // pg.set_stdin();
-  // pg.set_pos();
-
   int status {pg.parse()};
-
-  // if (status > 0 && pg.get_stdin().empty())
-  // {
-  //   std::cerr << pg.help() << "\n";
-  //   std::cerr << "Error: " << "expected arguments" << "\n";
-
-  //   return -1;
-  // }
 
   if (status < 0)
   {
