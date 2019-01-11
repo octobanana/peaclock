@@ -10,15 +10,37 @@ A colourful binary clock for the terminal.
 ## About
 Peaclock is a customizable binary clock made for the terminal.
 
+Each column represents a single digit.
+The first two columns are the two hour digits,
+the next two are the minute digits,
+and the last two are the seconds digits.
+
+The bottom row is the low-order bit,
+which makes it worth a value of 1.
+The next row up is worth 2, then 4, followed by 8.
+Adding up the __on__ bits gives the value of the digit.
+
+```
+ |  |  | < 8
+ | || || < 4
+|| || || < 2
+|| || || < 1
+HH:MM:SS
+```
+
 ### Features
 * digital clock
 * binary clock
 * 12/24 hour time
 * customize with hex colour codes
-* set a custom character for the binary clock graphic
+* set a custom unicode character for the binary clock graphic
 * compact or expanded mode
 * toggle visibility of digital and binary clocks
 * command prompt with a readline-like interface
+
+## Usage
+View the usage and help output with the `--help` or `-h` flag.
+The help output also contains the documentation for the key bindings and commands for customization.
 
 ## Build
 ### Environment
