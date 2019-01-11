@@ -369,7 +369,7 @@ handle_input:
               _config.hour_24 = (match.at(1) == "24");
             }
             else if (auto match_opt = OB::String::match(input,
-              std::regex("^set\\s+char\\s+(.{1})$")))
+              std::regex("^set\\s+char\\s+(.{1,4})$")))
             {
               auto const match = std::move(match_opt.value());
 
