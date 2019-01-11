@@ -18,10 +18,26 @@ int program_options(Parg& pg)
 {
   pg.name("peaclock").version("0.0.0 (06.01.2019)");
   pg.description("A colourful binary clock for the terminal.");
-  pg.usage("[flags] [options] [--] [arguments]");
   pg.usage("[-v|--version]");
   pg.usage("[-h|--help]");
+  pg.info("Key Bindings", {
+    "q\n    quit the program",
+    ":\n    enter the command prompt",
+  });
+  pg.info("Commands", {
+    "q\n    quit the program",
+    "reset\n    reset all settings",
+    "set char <single_char>\n    set the binary clock character symbol",
+    "set hour <12|24>\n    set 12 or 24 hour time",
+    "set bold <on|off>\n    toggle bold style",
+    "set compact <on|off>\n    toggle compact style",
+    "set binary <on|off>\n    toggle binary clock",
+    "set digital <on|off>\n    toggle digital clock",
+    "set active <#ffffff>\n    set active colour",
+    "set inactive <#ffffff>\n    set inactive colour",
+  });
   pg.info("Examples", {
+    "peaclock",
     "peaclock --help",
     "peaclock --version",
   });
