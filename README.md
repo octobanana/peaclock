@@ -1,5 +1,22 @@
-# peaclock
+# Peaclock
 A colourful binary clock for the terminal.
+
+![default](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/peaclock.png)
+![binary](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/binary.png)
+![digital](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/digital.png)
+
+## About
+Peaclock is a customizable binary clock made for the terminal.
+
+### Features
+* digital clock
+* binary clock
+* 12/24 hour time
+* customize with hex colour codes
+* set a custom character for the binary clock graphic
+* compact or expanded mode
+* toggle visibility of digital and binary clocks
+* command prompt with a readline-like interface
 
 ## Build
 ### Environment
