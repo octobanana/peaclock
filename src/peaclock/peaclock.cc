@@ -202,12 +202,12 @@ void Peaclock::event_loop()
           else if (e == 1)
           {
             // digit is set to on
-            buf << aec::wrap(_config.symbol, {_config.style.active, _config.style.bold});
+            buf << aec::wrap(_config.symbol, std::vector {_config.style.active, _config.style.bold});
           }
           else
           {
             // digit is set to off
-            buf << aec::wrap(_config.symbol, {_config.style.inactive, _config.style.bold});
+            buf << aec::wrap(_config.symbol, std::vector {_config.style.inactive, _config.style.bold});
           }
 
           if (col < 6)
@@ -242,13 +242,13 @@ void Peaclock::event_loop()
 
         for (std::size_t i {0}; i < _digital_clock.size(); ++i)
         {
-          buf << aec::wrap(_digital_clock.at(i), {_config.style.active, _config.style.bold});
+          buf << aec::wrap(_digital_clock.at(i), std::vector {_config.style.active, _config.style.bold});
 
           if (_config.compact)
           {
             if (i == 1 || i == 3)
             {
-              buf << aec::wrap(":", {_config.style.inactive, _config.style.bold});
+              buf << aec::wrap(":", std::vector {_config.style.inactive, _config.style.bold});
             }
           }
           else
