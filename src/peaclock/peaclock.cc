@@ -143,9 +143,16 @@ void Peaclock::event_loop()
 
       // set 12 or 24 hour time
       int hour {time_now->tm_hour};
-      if (! _config.hour_24 && hour > 12)
+      if (! _config.hour_24)
       {
-        hour -= 12;
+        if (hour > 12)
+        {
+          hour -= 12;
+        }
+        else if (hour == 0)
+        {
+          hour = 12;
+        }
       }
 
       // extract the individual digits
