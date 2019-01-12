@@ -23,4 +23,11 @@ cd build/${BUILD_TYPE}
 
 # install
 printf "\nInstalling ${APP} in ${BUILD_TYPE} mode\n"
-sudo make install
+if command -v sudo > /dev/null; then
+  sudo make install
+elif command -v doas > /dev/null; then
+  doas make install
+else
+  printf "Don't know how to elevate privileges, bailing.\n"
+  exit 1
+fi
