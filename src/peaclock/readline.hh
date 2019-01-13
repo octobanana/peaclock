@@ -16,7 +16,8 @@ public:
   Readline();
   ~Readline();
 
-  std::string operator()(std::string const& prompt_ref, bool& is_running);
+  Readline& prompt(std::string const& str, std::vector<std::string> const& style = {});
+  std::string operator()(bool& is_running);
   void add_history(std::string const& str);
 
 private:
@@ -25,7 +26,9 @@ private:
 
   struct Prompt
   {
-    std::string str {aec::wrap(":", aec::fg_white)};
+    std::string str {":"};
+    std::vector<std::string> style;
+    std::string fmt {aec::wrap(str, style)};
   } _prompt;
 
   struct Input

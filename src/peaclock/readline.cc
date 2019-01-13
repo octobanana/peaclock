@@ -20,37 +20,43 @@ Readline::~Readline()
 {
 }
 
-std::string Readline::operator()(std::string const& prompt_ref, bool& is_running)
+Readline& Readline::prompt(std::string const& str, std::vector<std::string> const& style)
+{
+  _prompt.str = str;
+  _prompt.style = style;
+  _prompt.fmt = aec::wrap(str, style);
+
+  return *this;
+}
+
+std::string Readline::operator()(bool& is_running)
 {
   // width and height of the terminal
   std::size_t width {0};
   std::size_t height {0};
   OB::Term::size(width, height);
 
-  // set prompt string
-  _prompt.str = prompt_ref;
-
   // reset input struct
   _input = {};
 
   auto const render_line = [&]()
   {
-    _prompt.str = prompt_ref;
+    std::string prompt {_prompt.fmt};
 
     if (_input.str.size() + 2 > width)
     {
       if (! _input.off)
       {
-        _input.fmt += aec::wrap(">", aec::fg_true("#424854"));
+        _input.fmt += aec::wrap(">", _prompt.style);
       }
       else if (_input.off + width - 2 < _input.str.size())
       {
-        _prompt.str = aec::wrap("<", aec::fg_true("#424854"));
-        _input.fmt += aec::wrap(">", aec::fg_true("#424854"));
+        prompt = aec::wrap("<", _prompt.style);
+        _input.fmt += aec::wrap(">", _prompt.style);
       }
       else
       {
-        _prompt.str = aec::wrap("<", aec::fg_true("#424854"));
+        prompt = aec::wrap("<", _prompt.style);
         _input.fmt = _input.fmt.substr(0, width - 2);
       }
     }
@@ -59,7 +65,7 @@ std::string Readline::operator()(std::string const& prompt_ref, bool& is_running
     << aec::cursor_hide
     << aec::cr
     << aec::erase_line
-    << _prompt.str
+    << prompt
     << _input.fmt
     << aec::cursor_set(_input.idx + 2, height)
     << aec::cursor_show
@@ -75,7 +81,7 @@ std::string Readline::operator()(std::string const& prompt_ref, bool& is_running
   auto wait {std::chrono::milliseconds(50)};
 
   std::cout
-  << _prompt.str
+  << _prompt.fmt
   << std::flush;
 
   while (loop && is_running)

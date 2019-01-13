@@ -19,12 +19,28 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <utility>
 #include <optional>
 
-Peaclock::Peaclock()
+Peaclock::Peaclock() :
+  _colorterm {is_colorterm()}
 {
+  _config.style.active = _colorterm ? aec::fg_true("#4feae7") : aec::fg_cyan;
+  _config.style.inactive = _colorterm ? aec::fg_true("#424854") : aec::fg_white;
+  _config.style.prompt = _colorterm ? aec::fg_true("#424854") : "";
 }
 
 Peaclock::~Peaclock()
 {
+}
+
+bool Peaclock::is_colorterm() const
+{
+  auto const colorterm = OB::String::lowercase(OB::String::env_var("COLORTERM"));
+
+  if (colorterm == "truecolor" || colorterm == "24bit")
+  {
+    return true;
+  }
+
+  return false;
 }
 
 void Peaclock::run()
@@ -70,7 +86,7 @@ void Peaclock::event_loop()
   std::size_t height {0};
 
   // command prompt string
-  std::string prompt {aec::wrap(":", aec::fg_white)};
+  _readline.prompt(":", std::vector {_config.style.prompt});
 
   // command prompt status
   struct Status
@@ -115,8 +131,8 @@ void Peaclock::event_loop()
       --status.count;
       std::cout
       << aec::cursor_set(0, height)
-      << aec::wrap("?", aec::fg_white)
-      << aec::wrap(status.str.substr(0, width - 2), aec::fg_red)
+      << aec::wrap("?", _config.style.prompt)
+      << aec::wrap(status.str.substr(0, width - 2), _config.style.error)
       << aec::cursor_up
       << aec::erase_up
       << aec::cursor_home
@@ -316,13 +332,13 @@ handle_input:
             status.count = 0;
 
             // read user input
-            auto input {readline(prompt, is_running)};
+            auto input {_readline(is_running)};
             input = std::regex_replace
             (
               OB::String::trim(input), std::regex("\\s+"),
               " ", std::regex_constants::match_not_null
             );
-            readline.add_history(input);
+            _readline.add_history(input);
 
             std::cout
             << aec::cursor_hide
@@ -354,16 +370,112 @@ handle_input:
             else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+active\\s+(#?[0-9a-fA-F]{6})$")))
             {
+              // 24-bit color
               auto const match = std::move(match_opt.value());
 
               _config.style.active = aec::fg_true(match.at(1));
             }
             else if (match_opt = OB::String::match(input,
+              std::regex("^set\\s+active\\s+([0-9]{1,3})$")))
+            {
+              // 8-bit color
+              auto const match = std::move(match_opt.value());
+
+              _config.style.active = aec::fg_256(match.at(1));
+            }
+            else if (match_opt = OB::String::match(input,
+              std::regex("^set\\s+active\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
+            {
+              // 4-bit color
+              auto const match = std::move(match_opt.value()).at(1);
+
+              if ("black" == match)
+              {
+                _config.style.active = aec::fg_black;
+              }
+              else if ("red" == match)
+              {
+                _config.style.active = aec::fg_red;
+              }
+              else if ("green" == match)
+              {
+                _config.style.active = aec::fg_green;
+              }
+              else if ("yellow" == match)
+              {
+                _config.style.active = aec::fg_yellow;
+              }
+              else if ("blue" == match)
+              {
+                _config.style.active = aec::fg_blue;
+              }
+              else if ("magenta" == match)
+              {
+                _config.style.active = aec::fg_magenta;
+              }
+              else if ("cyan" == match)
+              {
+                _config.style.active = aec::fg_cyan;
+              }
+              else if ("white" == match)
+              {
+                _config.style.active = aec::fg_white;
+              }
+            }
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+inactive\\s+(#?[0-9a-fA-F]{6})$")))
             {
+              // 24-bit color
               auto const match = std::move(match_opt.value());
 
               _config.style.inactive = aec::fg_true(match.at(1));
+            }
+            else if (match_opt = OB::String::match(input,
+              std::regex("^set\\s+inactive\\s+([0-9]{1,3})$")))
+            {
+              // 8-bit color
+              auto const match = std::move(match_opt.value());
+
+              _config.style.inactive = aec::fg_256(match.at(1));
+            }
+            else if (match_opt = OB::String::match(input,
+              std::regex("^set\\s+inactive\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
+            {
+              // 4-bit color
+              auto const match = std::move(match_opt.value()).at(1);
+
+              if ("black" == match)
+              {
+                _config.style.inactive = aec::fg_black;
+              }
+              else if ("red" == match)
+              {
+                _config.style.inactive = aec::fg_red;
+              }
+              else if ("green" == match)
+              {
+                _config.style.inactive = aec::fg_green;
+              }
+              else if ("yellow" == match)
+              {
+                _config.style.inactive = aec::fg_yellow;
+              }
+              else if ("blue" == match)
+              {
+                _config.style.inactive = aec::fg_blue;
+              }
+              else if ("magenta" == match)
+              {
+                _config.style.inactive = aec::fg_magenta;
+              }
+              else if ("cyan" == match)
+              {
+                _config.style.inactive = aec::fg_cyan;
+              }
+              else if ("white" == match)
+              {
+                _config.style.inactive = aec::fg_white;
+              }
             }
             else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+hour\\s+(12|24)$")))
@@ -453,8 +565,8 @@ handle_input:
             {
               status.str = input;
               std::cout
-              << aec::wrap("?", aec::fg_white)
-              << aec::wrap(status.str.substr(0, width - 2), aec::fg_red);
+              << aec::wrap("?", _config.style.prompt)
+              << aec::wrap(status.str.substr(0, width - 2), _config.style.error);
               status.count = status.timeout;
             }
 

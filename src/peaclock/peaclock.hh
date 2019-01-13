@@ -1,10 +1,12 @@
 #ifndef PEACLOCK_HH
 #define PEACLOCK_HH
 
+#include "peaclock/readline.hh"
+
+#include "ob/string.hh"
+
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
-
-#include "peaclock/readline.hh"
 
 #include <cstddef>
 
@@ -24,6 +26,8 @@ private:
 
   void event_loop();
 
+  bool is_colorterm() const;
+
   int ctrl_key(int c) const;
 
   void extract_digits(int num, int& t0, int& t1) const;
@@ -34,7 +38,9 @@ private:
 
   std::string check_window_size(std::size_t width, std::size_t height) const;
 
-  Readline readline;
+  bool const _colorterm = OB::String::lowercase(OB::String::env_var("COLORTERM")) == "truecolor" ? true : false;
+
+  Readline _readline;
 
   using Clock = std::vector<int>;
 
@@ -67,8 +73,10 @@ private:
     struct Style
     {
       std::string bold {aec::bold};
-      std::string active {aec::fg_true("#4feae7")};
-      std::string inactive {aec::fg_true("#424854")};
+      std::string error {aec::fg_red};
+      std::string prompt;
+      std::string active;
+      std::string inactive;
     } style;
   } _config;
 };
