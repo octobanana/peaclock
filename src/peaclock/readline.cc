@@ -337,8 +337,9 @@ std::string Readline::operator()(bool& is_running)
           else
           {
             ++_input.off;
-            _input.fmt = _input.str.substr(_input.off, width - 2);
           }
+
+          _input.fmt = _input.str.substr(_input.off, width - 2);
 
           render_line();
         }
