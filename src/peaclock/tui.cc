@@ -100,6 +100,9 @@ void Tui::event_loop()
     int timeout {2};
   } status;
 
+  // copy of default config for the reset command
+  auto const config_clear = _peaclock.config;
+
   // output buffer
   std::ostringstream buf;
 
@@ -246,7 +249,7 @@ handle_input:
             }
             else if (input == "reset")
             {
-              _peaclock.config = {};
+              _peaclock.config = config_clear;
             }
             else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+active\\s+(#?[0-9a-fA-F]{6})$")))
