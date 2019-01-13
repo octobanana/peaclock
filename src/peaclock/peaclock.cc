@@ -17,6 +17,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <algorithm>
 #include <regex>
 #include <utility>
+#include <optional>
 
 Peaclock::Peaclock()
 {
@@ -328,6 +329,9 @@ handle_input:
             << aec::cr
             << aec::erase_line;
 
+            // store the matches returned from OB::String::match
+            std::optional<std::vector<std::string>> match_opt;
+
             if (! is_running)
             {
               is_running = false;
@@ -347,35 +351,35 @@ handle_input:
             {
               _config = {};
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+active\\s+(#?[0-9a-fA-F]{6})$")))
             {
               auto const match = std::move(match_opt.value());
 
               _config.style.active = aec::fg_true(match.at(1));
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+inactive\\s+(#?[0-9a-fA-F]{6})$")))
             {
               auto const match = std::move(match_opt.value());
 
               _config.style.inactive = aec::fg_true(match.at(1));
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+hour\\s+(12|24)$")))
             {
               auto const match = std::move(match_opt.value());
 
               _config.hour_24 = (match.at(1) == "24");
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+char\\s+(.{1,4})$")))
             {
               auto const match = std::move(match_opt.value());
 
               _config.symbol = match.at(1);
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+bold\\s+(true|false|t|f|1|0|on|off)$")))
             {
               auto const match = std::move(match_opt.value());
@@ -390,7 +394,7 @@ handle_input:
                 _config.style.bold.clear();
               }
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+compact\\s+(true|false|t|f|1|0|on|off)$")))
             {
               auto const match = std::move(match_opt.value());
@@ -405,7 +409,7 @@ handle_input:
                 "on" == val
               );
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+digital\\s+(true|false|t|f|1|0|on|off)$")))
             {
               auto const match = std::move(match_opt.value());
@@ -425,7 +429,7 @@ handle_input:
                 _config.binary_clock = true;
               }
             }
-            else if (auto match_opt = OB::String::match(input,
+            else if (match_opt = OB::String::match(input,
               std::regex("^set\\s+binary\\s+(true|false|t|f|1|0|on|off)$")))
             {
               auto const match = std::move(match_opt.value());
