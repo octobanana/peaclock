@@ -1,6 +1,7 @@
 #include "ob/string.hh"
 
 #include <cstddef>
+#include <cstdlib>
 
 #include <string>
 #include <string_view>
@@ -12,6 +13,40 @@
 
 namespace OB::String
 {
+
+std::string env_var(std::string const& str)
+{
+  std::string res;
+
+  if (char const* envar = std::getenv(str.data()))
+  {
+    res = envar;
+  }
+
+  return res;
+}
+
+std::string lowercase(std::string const& str)
+{
+  auto const to_lower = [](char& c)
+  {
+    if (c >= 'A' && c <= 'Z')
+    {
+      c += 'a' - 'A';
+    }
+
+    return c;
+  };
+
+  std::string res {str};
+
+  for (char& c : res)
+  {
+    c = to_lower(c);
+  }
+
+  return res;
+}
 
 std::string trim(std::string str)
 {
