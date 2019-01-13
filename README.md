@@ -54,7 +54,7 @@ If the terminal doesn't support the value given, it may just end up showing as t
 ### Environment
 * Linux (supported)
 * BSD (untested)
-* macOS (untested)
+* macOS (supported)
 
 ### Requirements
 * C++17 compiler
