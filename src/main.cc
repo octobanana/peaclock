@@ -4,7 +4,7 @@ using Parg = OB::Parg;
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
-#include "peaclock/peaclock.hh"
+#include "peaclock/tui.hh"
 
 #include <cstddef>
 
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
 
   try
   {
-    Peaclock clock;
-    clock.run();
+    Tui tui;
+    tui.run();
   }
   catch(std::exception const& e)
   {

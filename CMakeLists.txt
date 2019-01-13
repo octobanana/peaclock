@@ -39,8 +39,9 @@ include_directories(
 set (SOURCES
   src/main.cc
   src/ob/string.cc
-  src/peaclock/peaclock.cc
+  src/peaclock/tui.cc
   src/peaclock/readline.cc
+  src/peaclock/peaclock.cc
 )
 
 set (HEADERS
