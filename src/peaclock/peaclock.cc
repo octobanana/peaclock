@@ -692,9 +692,13 @@ std::string Peaclock::check_window_size(std::size_t width, std::size_t height) c
     if (width_invalid && height_invalid)
     {
       msg
-      << "Error: width ("
+      << "Error: width "
+      << width
+      << " ("
       << width_min
-      << " min) & height ("
+      << " min) & height "
+      << height
+      << " ("
       << height_min
       << " min)"
       << "\n";
@@ -702,7 +706,9 @@ std::string Peaclock::check_window_size(std::size_t width, std::size_t height) c
     else if (width_invalid)
     {
       msg
-      << "Error: width ("
+      << "Error: width "
+      << width
+      << " ("
       << width_min
       << " min)"
       << "\n";
@@ -710,7 +716,9 @@ std::string Peaclock::check_window_size(std::size_t width, std::size_t height) c
     else
     {
       msg
-      << "Error: height ("
+      << "Error: height "
+      << height
+      << " ("
       << height_min
       << " min)"
       << "\n";
