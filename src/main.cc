@@ -33,8 +33,18 @@ int program_options(Parg& pg)
     "set compact <on|off>\n    toggle compact style",
     "set binary <on|off>\n    toggle binary clock",
     "set digital <on|off>\n    toggle digital clock",
-    "set active <#ffffff>\n    set active colour",
-    "set inactive <#ffffff>\n    set inactive colour",
+    "set active <#ffffff|0-255|colour>\n    set active colour",
+    "set inactive <#ffffff|0-255|colour>\n    set inactive colour",
+  });
+  pg.info("Colours", {
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
   });
   pg.info("Examples", {
     "peaclock",
