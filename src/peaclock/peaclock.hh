@@ -38,7 +38,7 @@ private:
 
   std::string check_window_size(std::size_t width, std::size_t height) const;
 
-  bool const _colorterm = OB::String::lowercase(OB::String::env_var("COLORTERM")) == "truecolor" ? true : false;
+  bool const _colorterm;
 
   Readline _readline;
 
