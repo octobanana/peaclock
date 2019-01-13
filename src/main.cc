@@ -36,7 +36,7 @@ int program_options(Parg& pg)
     "set active <#ffffff|0-255|colour>\n    set active colour",
     "set inactive <#ffffff|0-255|colour>\n    set inactive colour",
   });
-  pg.info("Colours", {
+  pg.info("Colour", {
     "black",
     "red",
     "green",
