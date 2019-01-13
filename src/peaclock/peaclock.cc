@@ -248,7 +248,6 @@ void Peaclock::event_loop()
             col = 1;
             buf << "\n";
           }
-
         }
       }
 
