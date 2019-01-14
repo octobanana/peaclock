@@ -489,7 +489,7 @@ void Readline::add_history(std::string const& str)
   _history.idx = _history.val.size();
 }
 
-int Readline::ctrl_key(int c) const
+int Readline::ctrl_key(int const c) const
 {
   return (c & 0x1f);
 }

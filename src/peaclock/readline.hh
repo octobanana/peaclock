@@ -22,7 +22,7 @@ public:
 
 private:
 
-  int ctrl_key(int c) const;
+  int ctrl_key(int const c) const;
 
   struct Prompt
   {

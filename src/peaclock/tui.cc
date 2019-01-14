@@ -469,12 +469,12 @@ handle_input:
   }
 }
 
-int Tui::ctrl_key(int c) const
+int Tui::ctrl_key(int const c) const
 {
   return (c & 0x1f);
 }
 
-std::string Tui::check_window_size(std::size_t width, std::size_t height) const
+std::string Tui::check_window_size(std::size_t const width, std::size_t const height) const
 {
   std::size_t width_min {11};
   if (_peaclock.config.compact)
