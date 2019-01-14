@@ -53,7 +53,7 @@ If the terminal doesn't support the value given, it may just end up showing as t
 ## Build
 ### Environment
 * Linux (supported)
-* BSD (untested)
+* BSD (supported)
 * macOS (supported)
 
 ### Requirements
