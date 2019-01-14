@@ -79,6 +79,7 @@ std::string Readline::operator()(bool& is_running)
   int num_read {0};
 
   bool loop {true};
+  bool clear_input {false};
   auto wait {std::chrono::milliseconds(50)};
 
   std::cout
@@ -101,7 +102,7 @@ std::string Readline::operator()(bool& is_running)
         {
           // exit the command prompt
           loop = false;
-          _input.str.clear();
+          clear_input = true;
           break;
         }
 
@@ -167,7 +168,7 @@ std::string Readline::operator()(bool& is_running)
                   {
                     // exit the command prompt
                     loop = false;
-                    _input.str.clear();
+                    clear_input = true;
                     break;
                   }
 
@@ -313,7 +314,7 @@ std::string Readline::operator()(bool& is_running)
       {
         // exit the main event loop
         is_running = false;
-        _input.str.clear();
+        clear_input = true;
         break;
       }
 
@@ -478,6 +479,11 @@ std::string Readline::operator()(bool& is_running)
 
   // add result to history
   add_history(res);
+
+  if (clear_input)
+  {
+    res.clear();
+  }
 
   return res;
 }
