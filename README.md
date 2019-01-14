@@ -42,6 +42,14 @@ HH:MM:SS
 View the usage and help output with the `--help` or `-h` flag.
 The help output also contains the documentation for the key bindings and commands for customization.
 
+## Terminal Compatibility
+The default colour output is chosen depending on the presence of the `COLORTERM` environment variable.
+Most modern terminal emulators that support true colour will automatically set this variable to either `truecolor` or `24bit`.
+If either of those values are found, peaclock will default to using 24-bit or true colour.
+If the variable is empty, or set to anything else, peaclock will default to using 4-bit colours.
+The default chosen is for the initial state, one can still set the colours to use another value.
+If the terminal doesn't support the value given, it may just end up showing as the colour white.
+
 ## Build
 ### Environment
 * Linux (supported)
