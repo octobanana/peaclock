@@ -23,6 +23,7 @@ public:
 private:
 
   int ctrl_key(int const c) const;
+  std::string normalize(std::string const& str) const;
 
   struct Prompt
   {

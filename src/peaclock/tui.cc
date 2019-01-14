@@ -217,12 +217,6 @@ handle_input:
 
             // read user input
             auto input {_readline(is_running)};
-            input = std::regex_replace
-            (
-              OB::String::trim(input), std::regex("\\s+"),
-              " ", std::regex_constants::match_not_null
-            );
-            _readline.add_history(input);
 
             std::cout
             << aec::cursor_hide

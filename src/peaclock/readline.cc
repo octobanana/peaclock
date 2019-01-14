@@ -1,5 +1,6 @@
 #include "peaclock/readline.hh"
 
+#include "ob/string.hh"
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
@@ -472,7 +473,13 @@ std::string Readline::operator()(bool& is_running)
     }
   }
 
-  return _input.str;
+  // normalize input string
+  auto res = normalize(_input.str);
+
+  // add result to history
+  add_history(res);
+
+  return res;
 }
 
 void Readline::add_history(std::string const& str)
@@ -492,4 +499,14 @@ void Readline::add_history(std::string const& str)
 int Readline::ctrl_key(int const c) const
 {
   return (c & 0x1f);
+}
+
+std::string Readline::normalize(std::string const& str) const
+{
+  // trim leading and trailing whitespace
+  // collapse sequential whitespace
+  return OB::String::lowercase(std::regex_replace(
+    OB::String::trim(str), std::regex("\\s+"),
+    " ", std::regex_constants::match_not_null
+  ));
 }
