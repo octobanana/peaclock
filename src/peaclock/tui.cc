@@ -24,7 +24,7 @@ Tui::Tui() :
   _colorterm {is_colorterm()}
 {
   _peaclock.config.style.active = _colorterm ? aec::fg_true("#4feae7") : aec::fg_cyan;
-  _peaclock.config.style.inactive = _colorterm ? aec::fg_true("#424854") : aec::fg_white;
+  _peaclock.config.style.inactive = _colorterm ? aec::fg_true("#424854") : aec::fg_black;
 }
 
 Tui::~Tui()
