@@ -33,8 +33,8 @@ int program_options(Parg& pg)
     "set compact <on|off>\n    toggle compact style",
     "set binary <on|off>\n    toggle binary clock",
     "set digital <on|off>\n    toggle digital clock",
-    "set active <#ffffff|0-255|colour>\n    set active colour",
-    "set inactive <#ffffff|0-255|colour>\n    set inactive colour",
+    "set active <#000000-#ffffff|0-255|Colour>\n    set active colour to 24-bit, 8-bit, or 4-bit value",
+    "set inactive <#000000-#ffffff|0-255|Colour>\n    set inactive colour to 24-bit, 8-bit, or 4-bit value",
   });
   pg.info("Colour", {
     "black",
