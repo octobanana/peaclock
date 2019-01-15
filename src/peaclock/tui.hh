@@ -26,7 +26,6 @@ public:
 private:
 
   void event_loop();
-  bool is_colorterm() const;
   int ctrl_key(int const c) const;
   std::string check_window_size(std::size_t const width, std::size_t const height) const;
 

@@ -9,6 +9,7 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 
 #include <iomanip>
 #include <streambuf>
@@ -85,6 +86,18 @@ private:
   bool _cooked {true};
 }; // class Mode
 
+inline std::string env_var(std::string const& str)
+{
+  std::string res;
+
+  if (char const* envar = std::getenv(str.data()))
+  {
+    res = envar;
+  }
+
+  return res;
+}
+
 inline bool is_term(std::size_t fd_)
 {
   switch (fd_)
@@ -94,6 +107,18 @@ inline bool is_term(std::size_t fd_)
     case STDERR_FILENO: return isatty(STDERR_FILENO);
     default: return false;
   }
+}
+
+inline bool is_colorterm()
+{
+  auto const colorterm = env_var("COLORTERM");
+
+  if (colorterm == "truecolor" || colorterm == "24bit")
+  {
+    return true;
+  }
+
+  return false;
 }
 
 inline int width(std::size_t& width_, std::size_t fd_ = STDOUT_FILENO)

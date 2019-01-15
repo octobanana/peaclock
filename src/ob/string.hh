@@ -10,8 +10,6 @@
 namespace OB::String
 {
 
-std::string env_var(std::string const& str);
-
 std::string lowercase(std::string const& str);
 
 std::string trim(std::string str);

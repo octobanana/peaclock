@@ -21,7 +21,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <optional>
 
 Tui::Tui() :
-  _colorterm {is_colorterm()}
+  _colorterm {OB::Term::is_colorterm()}
 {
   _peaclock.config.style.active = _colorterm ? aec::fg_true("#4feae7") : aec::fg_cyan;
   _peaclock.config.style.inactive = _colorterm ? aec::fg_true("#424854") : aec::fg_black;
@@ -29,18 +29,6 @@ Tui::Tui() :
 
 Tui::~Tui()
 {
-}
-
-bool Tui::is_colorterm() const
-{
-  auto const colorterm = OB::String::lowercase(OB::String::env_var("COLORTERM"));
-
-  if (colorterm == "truecolor" || colorterm == "24bit")
-  {
-    return true;
-  }
-
-  return false;
 }
 
 void Tui::run()
