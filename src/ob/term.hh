@@ -170,8 +170,9 @@ namespace ANSI_Escape_Codes
 {
 
 // standard escaped characters
-std::string const nl {"\n"};
 std::string const cr {"\r"};
+std::string const nl {"\n"};
+std::string const crnl {cr + nl};
 std::string const tab {"\t"};
 std::string const alert {"\a"};
 std::string const backspace {"\b"};
@@ -180,8 +181,11 @@ std::string const backslash {"\\"};
 // escape code sequence
 std::string const esc {"\x1b"};
 
-// clears all attributes
-std::string const reset {esc + "[0m"};
+// reset terminal
+std::string const reset {esc + "c"};
+
+// clear all attributes
+std::string const clear {esc + "[0m"};
 
 // style
 std::string const bold {esc + "[1m"};
@@ -194,14 +198,21 @@ std::string const reverse {esc + "[7m"};
 std::string const conceal {esc + "[8m"};
 std::string const cross {esc + "[9m"};
 
-// erasing
-std::string const clear {esc + "c"};
+// screen
+std::string const screen_push {esc + "[?1049h"};
+std::string const screen_pop {esc + "[?1049l"};
+std::string const screen_clear {esc + "[2J"};
+
+// scroll
+std::string const scroll_up {esc + "M"};
+std::string const scroll_down {esc + "D"};
+
+// erase
 std::string const erase_end {esc + "[K"};
 std::string const erase_start {esc + "[1K"};
 std::string const erase_line {esc + "[2K"};
 std::string const erase_down {esc + "[J"};
 std::string const erase_up {esc + "[1J"};
-std::string const erase_screen {esc + "[2J"};
 
 // cursor visibility
 std::string const cursor_hide {esc + "[?25l"};
@@ -397,7 +408,7 @@ std::string wrap(T const val_, std::string const attr_, bool color_ = true)
     ss
     << attr_
     << val_
-    << reset;
+    << clear;
   }
   else
   {
@@ -418,11 +429,11 @@ std::string wrap(T const val_, std::vector<std::string> const attr_, bool color_
     {
       ss << e;
     }
-    ss << val_ << reset;
+    ss << val_ << clear;
   }
   else
   {
-    ss << val_ << reset;
+    ss << val_ << clear;
   }
 
   return ss.str();
