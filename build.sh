@@ -9,7 +9,7 @@ if [[ $# > 0 ]]; then
   elif [[ $1 == "--release" ]]; then
     BUILD_TYPE="release"
   else
-    printf "usage: ./build.sh [-d|-r]\n";
+    printf "usage: ./build.sh [--debug|--release]\n";
     exit 1
   fi
 fi
