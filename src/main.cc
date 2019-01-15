@@ -71,7 +71,7 @@ int program_options(Parg& pg)
     std::cerr << pg.help() << "\n";
     std::cerr << "Error: " << pg.error() << "\n";
 
-    auto similar_names = pg.similar();
+    auto const similar_names = pg.similar();
     if (similar_names.size() > 0)
     {
       std::cerr
