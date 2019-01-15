@@ -33,10 +33,11 @@ Tui::~Tui()
 
 void Tui::run()
 {
-  // clear screen
   std::cout
   << aec::cursor_hide
-  << aec::erase_screen
+  << aec::screen_push
+  << aec::cursor_hide
+  << aec::screen_clear
   << aec::cursor_home
   << std::flush;
 
@@ -47,19 +48,9 @@ void Tui::run()
   // start the event loop
   event_loop();
 
-  // get height of terminal
-  std::size_t height {0};
-  OB::Term::height(height);
-
-  // clear screen
   std::cout
-  << aec::cursor_set(0, height);
-  OB::Algorithm::for_each(height, [](auto) {
-    std::cout
-    << aec::erase_line
-    << aec::cursor_up;
-  });
-  std::cout
+  << aec::nl
+  << aec::screen_pop
   << aec::cursor_show
   << std::flush;
 }
