@@ -57,4 +57,4 @@ target_link_libraries (
   ${TARGET}
 )
 
-install (TARGETS ${TARGET} DESTINATION "/usr/local/bin")
+install (TARGETS ${TARGET} DESTINATION bin)
