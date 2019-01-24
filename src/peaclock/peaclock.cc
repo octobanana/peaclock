@@ -196,7 +196,7 @@ std::string Peaclock::offset_width(std::size_t const width) const
 
   std::size_t x_offset {(width > cols) ? ((width - cols) / 2) : 0};
 
-  return OB::String::repeat(" " , x_offset);
+  return OB::String::repeat(" ", x_offset);
 }
 
 std::string Peaclock::offset_height(std::size_t const height) const
@@ -217,5 +217,5 @@ std::string Peaclock::offset_height(std::size_t const height) const
     y_offset = (height > rows) ? (height - rows) / 2 : 0;
   }
 
-  return OB::String::repeat("\n" , y_offset);
+  return OB::String::repeat("\n", y_offset);
 }
