@@ -90,7 +90,17 @@ void Tui::config(std::string const& custom_path)
 
       while (std::getline(file, line))
       {
+        // increase line number
         ++num;
+
+        // trim leading and trailing whitespace
+        line = OB::String::trim(line);
+
+        // ignore empty line or comment
+        if (line.empty() || OB::String::assert_rx(line, std::regex("^#[^\\r]*$")))
+        {
+          continue;
+        }
 
         if (auto const res = command(line))
         {

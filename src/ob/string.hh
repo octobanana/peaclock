@@ -14,6 +14,8 @@ std::string lowercase(std::string const& str);
 
 std::string trim(std::string str);
 
+bool assert_rx(std::string const& str, std::regex rx);
+
 std::optional<std::vector<std::string>> match(std::string const& str, std::regex rx);
 
 std::string repeat(std::string const& str, std::size_t num);

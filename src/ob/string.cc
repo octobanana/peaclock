@@ -50,6 +50,18 @@ std::string trim(std::string str)
   return {};
 }
 
+bool assert_rx(std::string const& str, std::regex rx)
+{
+  std::smatch m;
+
+  if (std::regex_match(str, m, rx, std::regex_constants::match_not_null))
+  {
+    return true;
+  }
+
+  return false;
+}
+
 std::optional<std::vector<std::string>> match(std::string const& str, std::regex rx)
 {
   std::smatch m;
