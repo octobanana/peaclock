@@ -2,10 +2,7 @@
 A colourful binary clock for the terminal.
 
 ![default](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/default.png)
-
 ![binary](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/binary.png)
-
-![digital](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/digital.png)
 
 ## About
 Peaclock is a customizable binary clock made for the terminal.
@@ -44,7 +41,29 @@ View the usage and help output with the `--help` or `-h` flag.
 The help output also contains the documentation for the key bindings and commands for customization.
 
 ## Config
-The default locations that the program will check for a configuration file are `~/.config/ob/peaclock/config` and `~/.ob/peaclock/config`. A custom path can be passed using the `--config` option. The file `config` is a plain text file that can contain any of the commands listed in the __Commands__ section of the __help__ output.
+The default config locations are `${XDG_CONFIG_HOME}/ob/peaclock/config` and `${HOME}/.ob/peaclock/config`.
+A custom path can also be passed to override the default locations using the `--config` option.
+The config directory and file must be created by the user.
+If the file does not exist, the program continues as normal.
+
+The file, `config`, is a plain text file that can contain any of the commands listed in the __Commands__ section of the `--help` output.
+Each command must be on its own line.
+Lines that begin with the `#` character are treated as comments.
+
+An example config file would look like the following:
+
+```text
+# peaclock config
+
+set compact off
+set char -
+set hour 24
+set bold on
+set binary on
+set digital off
+set active #4feae7
+set inactive #2c323c
+```
 
 ## Terminal Compatibility
 The default colour output is chosen depending on the presence of the `COLORTERM` environment variable.
@@ -59,13 +78,14 @@ If the terminal doesn't support the value given, it may just end up showing as t
 * Linux (supported)
 * BSD (supported)
 * macOS (supported)
+  * use latest version of __GCC__ or __Clang__ as the default Apple llvm compiler still does not support `std::filesystem`
 
 ### Requirements
 * C++17 compiler
 * CMake >= 3.8
 
 ### Dependencies
-* none
+* stdc++fs (libstdc++fs)
 
 ### Libraries:
 * [parg](https://github.com/octobanana/parg): for parsing CLI args, included as `./src/ob/parg.hh`
