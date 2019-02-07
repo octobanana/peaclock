@@ -18,7 +18,7 @@ int program_options(Parg& pg)
 {
   pg.name("peaclock").version("0.1.7 (23.01.2019)");
   pg.description("A colourful binary clock for the terminal.");
-  pg.usage("[-v|--version]");
+  pg.usage("[--config 'path']");
   pg.usage("[-h|--help]");
   pg.usage("[-v|--version]");
   pg.usage("[--license]");
@@ -48,8 +48,13 @@ int program_options(Parg& pg)
     "cyan",
     "white",
   });
+  pg.info("Config", {
+    "~/.config/ob/peaclock/config",
+    "~/.ob/peaclock/config",
+  });
   pg.info("Examples", {
     "peaclock",
+    "peaclock --config './path/to/config'",
     "peaclock --help",
     "peaclock --version",
     "peaclock --license",
@@ -67,6 +72,9 @@ int program_options(Parg& pg)
   pg.set("help,h", "print the help output");
   pg.set("version,v", "print the program version");
   pg.set("license", "print the program license");
+
+  // options
+  pg.set("config", "", "path", "custom path to config file");
 
   int status {pg.parse()};
 
@@ -143,7 +151,13 @@ int main(int argc, char *argv[])
 
   try
   {
+    // init
     Tui tui;
+
+    // load config file
+    tui.config(pg.get("config"));
+
+    // start event loop
     tui.run();
   }
   catch(std::exception const& e)

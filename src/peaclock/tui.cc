@@ -11,6 +11,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -20,15 +21,88 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <utility>
 #include <optional>
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 Tui::Tui() :
   _colorterm {OB::Term::is_colorterm()}
 {
   _peaclock.config.style.active = _colorterm ? aec::fg_true("#4feae7") : aec::fg_cyan;
   _peaclock.config.style.inactive = _colorterm ? aec::fg_true("#424854") : aec::fg_black;
+
+  _readline.prompt(":", std::vector {_ctx.style.prompt});
+
+  _ctx.style.prompt = _colorterm ? aec::fg_true("#424854") : "";
+  _ctx.style.success = aec::fg_green;
+  _ctx.style.error = aec::fg_red;
 }
 
 Tui::~Tui()
 {
+}
+
+void Tui::config(std::string const& custom_path)
+{
+  // find if config file exists
+  // custom_path
+  // ~/.config/peaclock/config
+  // ~/.peaclock/config
+  // none
+
+  fs::path path;
+  std::string base;
+
+  if (! custom_path.empty())
+  {
+    path = fs::path(custom_path);
+  }
+  else if (base = OB::Term::env_var("XDG_CONFIG_HOME"); ! base.empty())
+  {
+    fs::path const dir {"ob/peaclock/config"};
+    path = fs::path(base) / dir;
+  }
+  else if (base = OB::Term::env_var("HOME"); ! base.empty())
+  {
+    fs::path const dir {".ob/peaclock/config"};
+    path = fs::path(base) / dir;
+  }
+
+  if (path.empty())
+  {
+    return;
+  }
+
+  std::error_code ec;
+  path = fs::canonical(path, ec);
+  if (ec)
+  {
+    return;
+  }
+
+  if (fs::exists(path))
+  {
+    std::ifstream file {path.string()};
+
+    if (file.is_open())
+    {
+      std::string line;
+      std::size_t num {0};
+
+      while (std::getline(file, line))
+      {
+        ++num;
+
+        if (auto const res = command(line))
+        {
+          if (! res.value().first)
+          {
+            // source:line: level: info
+            std::cerr << path.string() << ":" << num << ": " << res.value().second << "\n";
+          }
+        }
+      }
+    }
+  }
 }
 
 void Tui::run()
@@ -57,49 +131,26 @@ void Tui::run()
 
 void Tui::event_loop()
 {
-  // control when to exit the event loop
-  bool is_running {true};
-
-  // width and height of the terminal
-  std::size_t width {0};
-  std::size_t height {0};
-
-  // styles
-  std::string const style_prompt {_colorterm ? aec::fg_true("#424854") : ""};
-  std::string const style_error {aec::fg_red};
-
-  // command prompt string
-  _readline.prompt(":", std::vector {style_prompt});
-
-  // command prompt status
-  struct Status
-  {
-    std::string str;
-    int count {0};
-    int timeout {2};
-  } status;
-
-  // copy of default config for the reset command
-  auto const config_clear = _peaclock.config;
+  _ctx.config_clear = _peaclock.config;
 
   // output buffer
   std::ostringstream buf;
 
   // each loop iteration should take around 1 second
-  while (is_running)
+  while (_ctx.is_running)
   {
     // clear output buffer
     buf.str("");
 
     // get the terminal width and height
-    OB::Term::size(width, height);
-    buf.str(check_window_size(width, height));
+    OB::Term::size(_ctx.width, _ctx.height);
+    buf.str(check_window_size(_ctx.width, _ctx.height));
 
     if (! buf.str().empty())
     {
       std::cout
-      << aec::cursor_set(0, height);
-      OB::Algorithm::for_each(height, [](auto) {
+      << aec::cursor_set(0, _ctx.height);
+      OB::Algorithm::for_each(_ctx.height, [](auto) {
         std::cout
         << aec::erase_line
         << aec::cursor_up;
@@ -111,14 +162,14 @@ void Tui::event_loop()
     }
 
     // check if command prompt message is active
-    if (status.count > 0)
+    if (_ctx.status.count > 0)
     {
       // clear screen with command prompt message
-      --status.count;
+      --_ctx.status.count;
       std::cout
-      << aec::cursor_set(0, height)
-      << aec::wrap("?", style_prompt)
-      << aec::wrap(status.str.substr(0, width - 2), style_error)
+      << aec::cursor_set(0, _ctx.height)
+      << aec::wrap("?", _ctx.style.prompt)
+      << aec::wrap(_ctx.status.str.substr(0, _ctx.width - 2), _ctx.style.status)
       << aec::cursor_up
       << aec::erase_up
       << aec::cursor_home
@@ -128,8 +179,8 @@ void Tui::event_loop()
     {
       // clear screen
       std::cout
-      << aec::cursor_set(0, height);
-      OB::Algorithm::for_each(height, [](auto) {
+      << aec::cursor_set(0, _ctx.height);
+      OB::Algorithm::for_each(_ctx.height, [](auto) {
         std::cout
         << aec::erase_line
         << aec::cursor_up;
@@ -139,7 +190,7 @@ void Tui::event_loop()
     }
 
     // render content to buffer
-    _peaclock.render(width, height, buf);
+    _peaclock.render(_ctx.width, _ctx.height, buf);
 
     // output buffer
     std::cout
@@ -155,7 +206,7 @@ handle_input:
       int loop {20};
       auto wait {std::chrono::milliseconds(50)};
 
-      while (is_running && loop-- > 0)
+      while (_ctx.is_running && loop-- > 0)
       {
         while ((num_read = read(STDIN_FILENO, &c, 1)) == 1)
         {
@@ -167,270 +218,21 @@ handle_input:
           // ctrl-c
           if (static_cast<int>(c) == ctrl_key('c'))
           {
-            is_running = false;
+            _ctx.is_running = false;
             break;
           }
 
           // quit
           else if (c == 'q' || c == 'Q')
           {
-            is_running = false;
+            _ctx.is_running = false;
             break;
           }
 
           // command prompt
           else if (c == ':')
           {
-            std::size_t x {0};
-            std::size_t y {0};
-            aec::cursor_get(x, y, false);
-
-            std::cout
-            << aec::cursor_set(0, height)
-            << aec::erase_line
-            << aec::cursor_show
-            << std::flush;
-
-            // reset prompt message count
-            status.count = 0;
-
-            // read user input
-            auto input {_readline(is_running)};
-
-            std::cout
-            << aec::cursor_hide
-            << aec::cr
-            << aec::erase_line;
-
-            // store the matches returned from OB::String::match
-            std::optional<std::vector<std::string>> match_opt;
-
-            if (! is_running)
-            {
-              is_running = false;
-              loop = 0;
-              break;
-            }
-            else if (input.empty())
-            {
-            }
-            else if (input == "q" || input == "Q" || input == "quit" || input == "exit")
-            {
-              is_running = false;
-              loop = 0;
-              break;
-            }
-            else if (input == "reset")
-            {
-              _peaclock.config = config_clear;
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+active\\s+(#?[0-9a-fA-F]{6})$")))
-            {
-              // 24-bit color
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.style.active = aec::fg_true(match.at(1));
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+active\\s+([0-9]{1,3})$")))
-            {
-              // 8-bit color
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.style.active = aec::fg_256(match.at(1));
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+active\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
-            {
-              // 4-bit color
-              auto const match = std::move(match_opt.value()).at(1);
-
-              if ("black" == match)
-              {
-                _peaclock.config.style.active = aec::fg_black;
-              }
-              else if ("red" == match)
-              {
-                _peaclock.config.style.active = aec::fg_red;
-              }
-              else if ("green" == match)
-              {
-                _peaclock.config.style.active = aec::fg_green;
-              }
-              else if ("yellow" == match)
-              {
-                _peaclock.config.style.active = aec::fg_yellow;
-              }
-              else if ("blue" == match)
-              {
-                _peaclock.config.style.active = aec::fg_blue;
-              }
-              else if ("magenta" == match)
-              {
-                _peaclock.config.style.active = aec::fg_magenta;
-              }
-              else if ("cyan" == match)
-              {
-                _peaclock.config.style.active = aec::fg_cyan;
-              }
-              else if ("white" == match)
-              {
-                _peaclock.config.style.active = aec::fg_white;
-              }
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+inactive\\s+(#?[0-9a-fA-F]{6})$")))
-            {
-              // 24-bit color
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.style.inactive = aec::fg_true(match.at(1));
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+inactive\\s+([0-9]{1,3})$")))
-            {
-              // 8-bit color
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.style.inactive = aec::fg_256(match.at(1));
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+inactive\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
-            {
-              // 4-bit color
-              auto const match = std::move(match_opt.value()).at(1);
-
-              if ("black" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_black;
-              }
-              else if ("red" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_red;
-              }
-              else if ("green" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_green;
-              }
-              else if ("yellow" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_yellow;
-              }
-              else if ("blue" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_blue;
-              }
-              else if ("magenta" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_magenta;
-              }
-              else if ("cyan" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_cyan;
-              }
-              else if ("white" == match)
-              {
-                _peaclock.config.style.inactive = aec::fg_white;
-              }
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+hour\\s+(12|24)$")))
-            {
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.hour_24 = (match.at(1) == "24");
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+char\\s+(.{1,4})$")))
-            {
-              auto const match = std::move(match_opt.value());
-
-              _peaclock.config.symbol = match.at(1);
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+bold\\s+(true|false|t|f|1|0|on|off)$")))
-            {
-              auto const match = std::move(match_opt.value());
-              auto const& val = match.at(1);
-
-              if ("" == val || "true" == val || "t" == val || "1" == val || "on" == val)
-              {
-                _peaclock.config.style.bold = aec::bold;
-              }
-              else
-              {
-                _peaclock.config.style.bold.clear();
-              }
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+compact\\s+(true|false|t|f|1|0|on|off)$")))
-            {
-              auto const match = std::move(match_opt.value());
-              auto const& val = match.at(1);
-
-              _peaclock.config.compact =
-              (
-                "" == val ||
-                "true" == val ||
-                "t" == val ||
-                "1" == val ||
-                "on" == val
-              );
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+digital\\s+(true|false|t|f|1|0|on|off)$")))
-            {
-              auto const match = std::move(match_opt.value());
-              auto const& val = match.at(1);
-
-              _peaclock.config.digital_clock =
-              (
-                "" == val ||
-                "true" == val ||
-                "t" == val ||
-                "1" == val ||
-                "on" == val
-              );
-
-              if (! _peaclock.config.digital_clock && ! _peaclock.config.binary_clock)
-              {
-                _peaclock.config.binary_clock = true;
-              }
-            }
-            else if (match_opt = OB::String::match(input,
-              std::regex("^set\\s+binary\\s+(true|false|t|f|1|0|on|off)$")))
-            {
-              auto const match = std::move(match_opt.value());
-              auto const& val = match.at(1);
-
-              _peaclock.config.binary_clock =
-              (
-                "" == val ||
-                "true" == val ||
-                "t" == val ||
-                "1" == val ||
-                "on" == val
-              );
-
-              if (! _peaclock.config.binary_clock && ! _peaclock.config.digital_clock)
-              {
-                _peaclock.config.digital_clock = true;
-              }
-            }
-            else
-            {
-              status.str = input;
-              std::cout
-              << aec::wrap("?", style_prompt)
-              << aec::wrap(status.str.substr(0, width - 2), style_error);
-              status.count = status.timeout;
-            }
-
-            std::cout
-            << aec::cursor_set(x, y)
-            << std::flush;
-
+            command_prompt();
             loop = 0;
             break;
           }
@@ -440,6 +242,275 @@ handle_input:
       }
     }
   }
+}
+
+std::optional<std::pair<bool, std::string>> Tui::command(std::string const& input)
+{
+  // quit
+  if (! _ctx.is_running)
+  {
+    _ctx.is_running = false;
+    return {};
+  }
+
+  // nop
+  if (input.empty())
+  {
+    return {};
+  }
+
+  // store the matches returned from OB::String::match
+  std::optional<std::vector<std::string>> match_opt;
+
+  // quit
+  if (match_opt = OB::String::match(input,
+    std::regex("^\\s*(q|Q|quit|Quit)\\s*$")))
+  {
+    _ctx.is_running = false;
+    return {};
+  }
+  else if (input == "reset")
+  {
+    _peaclock.config = _ctx.config_clear;
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+active\\s+(#?[0-9a-fA-F]{6})$")))
+  {
+    // 24-bit color
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.style.active = aec::fg_true(match.at(1));
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+active\\s+([0-9]{1,3})$")))
+  {
+    // 8-bit color
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.style.active = aec::fg_256(match.at(1));
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+active\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
+  {
+    // 4-bit color
+    auto const match = std::move(match_opt.value()).at(1);
+
+    if ("black" == match)
+    {
+      _peaclock.config.style.active = aec::fg_black;
+    }
+    else if ("red" == match)
+    {
+      _peaclock.config.style.active = aec::fg_red;
+    }
+    else if ("green" == match)
+    {
+      _peaclock.config.style.active = aec::fg_green;
+    }
+    else if ("yellow" == match)
+    {
+      _peaclock.config.style.active = aec::fg_yellow;
+    }
+    else if ("blue" == match)
+    {
+      _peaclock.config.style.active = aec::fg_blue;
+    }
+    else if ("magenta" == match)
+    {
+      _peaclock.config.style.active = aec::fg_magenta;
+    }
+    else if ("cyan" == match)
+    {
+      _peaclock.config.style.active = aec::fg_cyan;
+    }
+    else if ("white" == match)
+    {
+      _peaclock.config.style.active = aec::fg_white;
+    }
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+inactive\\s+(#?[0-9a-fA-F]{6})$")))
+  {
+    // 24-bit color
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.style.inactive = aec::fg_true(match.at(1));
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+inactive\\s+([0-9]{1,3})$")))
+  {
+    // 8-bit color
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.style.inactive = aec::fg_256(match.at(1));
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+inactive\\s+(black|red|green|yellow|blue|magenta|cyan|white)$")))
+  {
+    // 4-bit color
+    auto const match = std::move(match_opt.value()).at(1);
+
+    if ("black" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_black;
+    }
+    else if ("red" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_red;
+    }
+    else if ("green" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_green;
+    }
+    else if ("yellow" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_yellow;
+    }
+    else if ("blue" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_blue;
+    }
+    else if ("magenta" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_magenta;
+    }
+    else if ("cyan" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_cyan;
+    }
+    else if ("white" == match)
+    {
+      _peaclock.config.style.inactive = aec::fg_white;
+    }
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+hour\\s+(12|24)$")))
+  {
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.hour_24 = (match.at(1) == "24");
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+char\\s+(.{1,4})$")))
+  {
+    auto const match = std::move(match_opt.value());
+
+    _peaclock.config.symbol = match.at(1);
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+bold\\s+(true|false|t|f|1|0|on|off)$")))
+  {
+    auto const match = std::move(match_opt.value());
+    auto const& val = match.at(1);
+
+    if ("" == val || "true" == val || "t" == val || "1" == val || "on" == val)
+    {
+      _peaclock.config.style.bold = aec::bold;
+    }
+    else
+    {
+      _peaclock.config.style.bold.clear();
+    }
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+compact\\s+(true|false|t|f|1|0|on|off)$")))
+  {
+    auto const match = std::move(match_opt.value());
+    auto const& val = match.at(1);
+
+    _peaclock.config.compact =
+    (
+      "" == val ||
+      "true" == val ||
+      "t" == val ||
+      "1" == val ||
+      "on" == val
+    );
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+digital\\s+(true|false|t|f|1|0|on|off)$")))
+  {
+    auto const match = std::move(match_opt.value());
+    auto const& val = match.at(1);
+
+    _peaclock.config.digital_clock =
+    (
+      "" == val ||
+      "true" == val ||
+      "t" == val ||
+      "1" == val ||
+      "on" == val
+    );
+
+    if (! _peaclock.config.digital_clock && ! _peaclock.config.binary_clock)
+    {
+      _peaclock.config.binary_clock = true;
+    }
+  }
+  else if (match_opt = OB::String::match(input,
+    std::regex("^set\\s+binary\\s+(true|false|t|f|1|0|on|off)$")))
+  {
+    auto const match = std::move(match_opt.value());
+    auto const& val = match.at(1);
+
+    _peaclock.config.binary_clock =
+    (
+      "" == val ||
+      "true" == val ||
+      "t" == val ||
+      "1" == val ||
+      "on" == val
+    );
+
+    if (! _peaclock.config.binary_clock && ! _peaclock.config.digital_clock)
+    {
+      _peaclock.config.digital_clock = true;
+    }
+  }
+
+  // unknown
+  else
+  {
+    return std::make_pair(false, "warning: unknown command '" + input + "'");
+  }
+
+  return {};
+}
+
+void Tui::command_prompt()
+{
+  std::cout
+  << aec::cursor_save
+  << aec::cursor_set(0, _ctx.height)
+  << aec::erase_line
+  << aec::cursor_show
+  << std::flush;
+
+  // reset prompt message count
+  _ctx.status.count = 0;
+
+  // read user input
+  auto input = _readline(_ctx.is_running);
+
+  std::cout
+  << aec::cursor_hide
+  << aec::cr
+  << aec::erase_line
+  << std::flush;
+
+  if (auto const res = command(input))
+  {
+    _ctx.style.status = res.value().first ? _ctx.style.success : _ctx.style.error;
+    _ctx.status.str = res.value().second;
+    std::cout
+    << aec::wrap("?", _ctx.style.prompt)
+    << aec::wrap(_ctx.status.str.substr(0, _ctx.width - 2), _ctx.style.status);
+    _ctx.status.count = _ctx.status.timeout;
+  }
+
+  std::cout
+  << aec::cursor_load
+  << std::flush;
 }
 
 int Tui::ctrl_key(int const c) const

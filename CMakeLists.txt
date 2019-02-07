@@ -50,6 +50,7 @@ target_include_directories(
 
 target_link_libraries (
   ${TARGET}
+  stdc++fs
 )
 
 install (TARGETS ${TARGET} DESTINATION bin)

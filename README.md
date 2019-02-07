@@ -37,10 +37,14 @@ HH:MM:SS
 * compact or expanded mode
 * toggle visibility of digital and binary clocks
 * command prompt with a readline-like interface
+* configuration file
 
 ## Usage
 View the usage and help output with the `--help` or `-h` flag.
 The help output also contains the documentation for the key bindings and commands for customization.
+
+## Config
+The default locations that the program will check for a configuration file are `~/.config/ob/peaclock/config` and `~/.ob/peaclock/config`. A custom path can be passed using the `--config` option. The file `config` is a plain text file that can contain any of the commands listed in the __Commands__ section of the __help__ output.
 
 ## Terminal Compatibility
 The default colour output is chosen depending on the presence of the `COLORTERM` environment variable.
