@@ -44,7 +44,7 @@ private:
   struct History
   {
     std::vector<std::string> val;
-    std::size_t idx;
+    std::size_t idx {0};
   } _history;
 };
 
