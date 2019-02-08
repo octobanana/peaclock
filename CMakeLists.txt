@@ -31,6 +31,7 @@ message ("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 set (SOURCES
   src/main.cc
+  src/ob/util.cc
   src/ob/string.cc
   src/peaclock/tui.cc
   src/peaclock/readline.cc
@@ -50,7 +51,6 @@ target_include_directories(
 
 target_link_libraries (
   ${TARGET}
-  stdc++fs
 )
 
 install (TARGETS ${TARGET} DESTINATION bin)

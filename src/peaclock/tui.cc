@@ -1,5 +1,6 @@
 #include "peaclock/tui.hh"
 
+#include "ob/util.hh"
 #include "ob/string.hh"
 #include "ob/algorithm.hh"
 
@@ -20,9 +21,6 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <regex>
 #include <utility>
 #include <optional>
-
-#include <filesystem>
-namespace fs = std::filesystem;
 
 Tui::Tui() :
   _colorterm {OB::Term::is_colorterm()}
@@ -45,73 +43,99 @@ void Tui::config(std::string const& custom_path)
 {
   // find if config file exists
   // custom_path
-  // ~/.config/peaclock/config
-  // ~/.peaclock/config
+  // ${XDG_CONFIG_HOME}/ob/peaclock/config
+  // ${HOME}/.ob/peaclock/config
   // none
 
-  fs::path path;
-  std::string base;
-
-  if (! custom_path.empty())
+  // ignore config if path equals "NONE"
+  if (custom_path == "NONE")
   {
-    path = fs::path(custom_path);
-  }
-  else if (base = OB::Term::env_var("XDG_CONFIG_HOME"); ! base.empty())
-  {
-    fs::path const dir {"ob/peaclock/config"};
-    path = fs::path(base) / dir;
-  }
-  else if (base = OB::Term::env_var("HOME"); ! base.empty())
-  {
-    fs::path const dir {".ob/peaclock/config"};
-    path = fs::path(base) / dir;
+    return;
   }
 
+  bool use_default {true};
+  std::string path;
+
+  // custom_path
+  if (! custom_path.empty() && OB::Util::file_exists(custom_path))
+  {
+    use_default = false;
+    path = custom_path;
+  }
+
+  if (use_default)
+  {
+    std::string home {OB::Term::env_var("HOME")};
+    std::string config_home {OB::Term::env_var("XDG_CONFIG_HOME")};
+    if (config_home.empty())
+    {
+      config_home = home + "/.config/ob/peaclock/config";
+    }
+    else
+    {
+      config_home += "/ob/peaclock/config";
+    }
+
+    // ${XDG_CONFIG_HOME}/ob/peaclock/config
+    if (OB::Util::file_exists(config_home))
+    {
+      path = config_home;
+    }
+
+    // ${HOME}/.ob/peaclock/config
+    else if (config_home = home + "/.ob/peaclock/config"; OB::Util::file_exists(config_home))
+    {
+      path = config_home;
+    }
+  }
+
+  // custom path passed but does not exist
+  if (use_default && ! custom_path.empty())
+  {
+    std::cerr << "warning: could not open config file '" << custom_path << "'\n";
+  }
+
+  // none
   if (path.empty())
   {
     return;
   }
 
-  std::error_code ec;
-  path = fs::canonical(path, ec);
-  if (ec)
-  {
-    return;
-  }
+  std::ifstream file {path};
 
-  if (fs::exists(path))
+  if (file && file.is_open())
   {
-    std::ifstream file {path.string()};
+    std::string line;
+    std::size_t num {0};
 
-    if (file.is_open())
+    while (std::getline(file, line))
     {
-      std::string line;
-      std::size_t num {0};
+      // increase line number
+      ++num;
 
-      while (std::getline(file, line))
+      // trim leading and trailing whitespace
+      line = OB::String::trim(line);
+
+      // ignore empty line or comment
+      if (line.empty() || OB::String::assert_rx(line, std::regex("^#[^\\r]*$")))
       {
-        // increase line number
-        ++num;
+        continue;
+      }
 
-        // trim leading and trailing whitespace
-        line = OB::String::trim(line);
-
-        // ignore empty line or comment
-        if (line.empty() || OB::String::assert_rx(line, std::regex("^#[^\\r]*$")))
+      if (auto const res = command(line))
+      {
+        if (! res.value().first)
         {
-          continue;
-        }
-
-        if (auto const res = command(line))
-        {
-          if (! res.value().first)
-          {
-            // source:line: level: info
-            std::cerr << path.string() << ":" << num << ": " << res.value().second << "\n";
-          }
+          // source:line: level: info
+          std::cerr << path << ":" << num << ": " << res.value().second << "\n";
         }
       }
     }
+  }
+  else
+  {
+    std::cerr << "warning: could not open config file '" << path << "'\n";
+    return;
   }
 }
 
