@@ -78,14 +78,13 @@ If the terminal doesn't support the value given, it may just end up showing as t
 * Linux (supported)
 * BSD (supported)
 * macOS (supported)
-  * use latest version of __GCC__ or __Clang__ as the default Apple llvm compiler still does not support `std::filesystem`
 
 ### Requirements
 * C++17 compiler
 * CMake >= 3.8
 
 ### Dependencies
-* stdc++fs (libstdc++fs)
+* none
 
 ### Libraries:
 * [parg](https://github.com/octobanana/parg): for parsing CLI args, included as `./src/ob/parg.hh`
