@@ -41,7 +41,7 @@ View the usage and help output with the `--help` or `-h` flag.
 The help output also contains the documentation for the key bindings and commands for customization.
 
 ## Config
-The default config locations are `${XDG_CONFIG_HOME}/ob/peaclock/config` and `${HOME}/.ob/peaclock/config`.
+The default config locations are `${XDG_CONFIG_HOME}/peaclock/config` and `${HOME}/.peaclock/config`.
 A custom path can also be passed to override the default locations using the `--config` option.
 The config directory and file must be created by the user.
 If the file does not exist, the program continues as normal.

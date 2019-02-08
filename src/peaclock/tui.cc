@@ -43,8 +43,8 @@ void Tui::config(std::string const& custom_path)
 {
   // find if config file exists
   // custom_path
-  // ${XDG_CONFIG_HOME}/ob/peaclock/config
-  // ${HOME}/.ob/peaclock/config
+  // ${XDG_CONFIG_HOME}/peaclock/config
+  // ${HOME}/.peaclock/config
   // none
 
   // ignore config if path equals "NONE"
@@ -69,21 +69,21 @@ void Tui::config(std::string const& custom_path)
     std::string config_home {OB::Term::env_var("XDG_CONFIG_HOME")};
     if (config_home.empty())
     {
-      config_home = home + "/.config/ob/peaclock/config";
+      config_home = home + "/.config/peaclock/config";
     }
     else
     {
-      config_home += "/ob/peaclock/config";
+      config_home += "/peaclock/config";
     }
 
-    // ${XDG_CONFIG_HOME}/ob/peaclock/config
+    // ${XDG_CONFIG_HOME}/peaclock/config
     if (OB::Util::file_exists(config_home))
     {
       path = config_home;
     }
 
-    // ${HOME}/.ob/peaclock/config
-    else if (config_home = home + "/.ob/peaclock/config"; OB::Util::file_exists(config_home))
+    // ${HOME}/.peaclock/config
+    else if (config_home = home + "/.peaclock/config"; OB::Util::file_exists(config_home))
     {
       path = config_home;
     }
