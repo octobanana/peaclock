@@ -48,7 +48,11 @@ int program_options(Parg& pg)
     "cyan",
     "white",
   });
-  pg.info("Config Locations", {
+  pg.info("Config Directory Locations", {
+    "${XDG_CONFIG_HOME}/peaclock",
+    "${HOME}/.peaclock",
+  });
+  pg.info("Config File Locations", {
     "${XDG_CONFIG_HOME}/peaclock/config",
     "${HOME}/.peaclock/config",
     "custom path with '--config=<path>'"
