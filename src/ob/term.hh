@@ -16,6 +16,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <regex>
 #include <chrono>
@@ -28,12 +29,490 @@
 namespace OB::Term
 {
 
+namespace Key
+{
+  enum
+  {
+    null = 0,
+    bell = 7,
+    tab = 9,
+    newline = 10,
+    enter = 13,
+    escape = 27,
+    space = 32,
+    backspace = 127,
+
+    up = 0xF0000,
+    down,
+    left,
+    right,
+    home,
+    end,
+    delete_,
+    insert,
+    page_up,
+    page_down
+  };
+}
+
+namespace Mouse
+{
+  enum
+  {
+    null = 0,
+    btn_release = 0xF1000,
+    btn1_press,
+    btn1_release,
+    btn2_press,
+    btn2_release,
+    btn3_press,
+    btn3_release,
+    scroll_up,
+    scroll_down
+  };
+}
+
+inline int constexpr ctrl_key(int const c)
+{
+  return (c & 0x1F);
+}
+
+inline char32_t utf8_to_char32(std::string_view str)
+{
+  if (str.empty())
+  {
+    return 0;
+  }
+
+  if ((str.at(0) & 0x80) == 0)
+  {
+    return static_cast<char32_t>(str.at(0));
+  }
+  else if ((str.at(0) & 0xE0) == 0xC0 && str.size() == 2)
+  {
+    return (static_cast<char32_t>(str[0] & 0x1F) << 6) |
+      static_cast<char32_t>(str[1] & 0x3F);
+  }
+  else if ((str.at(0) & 0xF0) == 0xE0 && str.size() == 3)
+  {
+    return (static_cast<char32_t>(str[0] & 0x0F) << 12) |
+      (static_cast<char32_t>(str[1] & 0x3F) << 6) |
+      static_cast<char32_t>(str[2] & 0x3F);
+  }
+  else if ((str.at(0) & 0xF8) == 0xF0 && str.size() == 4)
+  {
+    return (static_cast<char32_t>(str[0] & 0x07) << 18) |
+      (static_cast<char32_t>(str[1] & 0x3F) << 12) |
+      (static_cast<char32_t>(str[2] & 0x3F) << 6) |
+      static_cast<char32_t>(str[3] & 0x3F);
+  }
+
+  return 0;
+}
+
+inline char32_t get_key(std::string* str = nullptr)
+{
+  // NOTE term mode should be in raw state before call to this func
+
+  char key[4] {0};
+  int ec = read(STDIN_FILENO, &key[0], 1);
+
+  if ((ec == -1) && (errno != EAGAIN))
+  {
+    throw std::runtime_error("read failed");
+  }
+
+  if (ec == 0)
+  {
+    return Key::null;
+  }
+
+  // utf-8 multibyte code point
+  if (key[0] & 0x80)
+  {
+    std::size_t bytes {0};
+
+    for (; bytes < 3; ++bytes)
+    {
+      if (! (key[0] & (0x80 >> (bytes + 1))))
+      {
+        break;
+      }
+    }
+
+    if ((ec = read(STDIN_FILENO, &key[1], bytes)) != static_cast<int>(bytes))
+    {
+      if ((ec == -1) && (errno != EAGAIN))
+      {
+        throw std::runtime_error("read failed");
+      }
+
+      return static_cast<char32_t>(key[0]);
+    }
+
+    ++bytes;
+
+    if (str != nullptr)
+    {
+      str->assign(&key[0], bytes);
+    }
+
+    return utf8_to_char32(std::string_view(&key[0], bytes));
+  }
+
+  // utf-8 single-byte code point
+  if (str != nullptr)
+  {
+    str->assign(&key[0], 1);
+  }
+
+  // esc / esc sequence
+  if (key[0] == Key::escape)
+  {
+    char seq[3] {0};
+
+    if ((ec = read(STDIN_FILENO, &seq[0], 1)) != 1)
+    {
+      if ((ec == -1) && (errno != EAGAIN))
+      {
+        throw std::runtime_error("read failed");
+      }
+
+      return static_cast<char32_t>(key[0]);
+    }
+
+    if ((ec = read(STDIN_FILENO, &seq[1], 1)) != 1)
+    {
+      if ((ec == -1) && (errno != EAGAIN))
+      {
+        throw std::runtime_error("read failed");
+      }
+
+      return static_cast<char32_t>(key[0]);
+    }
+
+    if (seq[0] == '[')
+    {
+      if (seq[1] >= '0' && seq[1] <= '9')
+      {
+        if ((ec = read(STDIN_FILENO, &seq[2], 1)) != 1)
+        {
+          if ((ec == -1) && (errno != EAGAIN))
+          {
+            throw std::runtime_error("read failed");
+          }
+
+          return static_cast<char32_t>(key[0]);
+        }
+
+        if (seq[2] == '~')
+        {
+          switch (seq[1])
+          {
+            case '1':
+            {
+              return Key::home;
+            }
+
+            case '2':
+            {
+              return Key::insert;
+            }
+
+            case '3':
+            {
+              return Key::delete_;
+            }
+
+            case '4':
+            {
+              return Key::end;
+            }
+
+            case '5':
+            {
+              return Key::page_up;
+            }
+
+            case '6':
+            {
+              return Key::page_down;
+            }
+
+            default:
+            {
+              return static_cast<char32_t>(key[0]);
+            }
+          }
+        }
+      }
+      else
+      {
+        switch (seq[1])
+        {
+          case 'A':
+          {
+            return Key::up;
+          }
+
+          case 'B':
+          {
+            return Key::down;
+          }
+
+          case 'C':
+          {
+            return Key::right;
+          }
+
+          case 'D':
+          {
+            return Key::left;
+          }
+
+          case '<':
+          {
+            // 1000;1006 mouse event
+
+            std::size_t constexpr buf_size {64};
+            char mouse[buf_size] {0};
+
+            for (std::size_t i = 0; i < buf_size; ++i)
+            {
+              if ((ec = read(STDIN_FILENO, &mouse[i], 1)) != 1)
+              {
+                if ((ec == -1) && (errno != EAGAIN))
+                {
+                  throw std::runtime_error("read failed");
+                }
+
+                return static_cast<char32_t>(key[0]);
+              }
+
+              if (mouse[i] >= 0x40 && mouse[i] <= 0x7E)
+              {
+                if (str != nullptr)
+                {
+                  str->assign(mouse, i + 1);
+                }
+
+                switch (mouse[i])
+                {
+                  case 'm':
+                  {
+                    switch (mouse[0])
+                    {
+                      case '0':
+                      {
+                        return Mouse::btn1_release;
+                      }
+
+                      case '1':
+                      {
+                        return Mouse::btn2_release;
+                      }
+
+                      case '2':
+                      {
+                        return Mouse::btn3_release;
+                      }
+
+                      default:
+                      {
+                        break;
+                      }
+                    }
+
+                    break;
+                  }
+
+                  case 'M':
+                  {
+                    switch (mouse[0])
+                    {
+                      case '0':
+                      {
+                        return Mouse::btn1_press;
+                      }
+
+                      case '1':
+                      {
+                        return Mouse::btn2_press;
+                      }
+
+                      case '2':
+                      {
+                        return Mouse::btn3_press;
+                      }
+
+                      case '6':
+                      {
+                        switch (mouse[1])
+                        {
+                          case '4':
+                          {
+                            return Mouse::scroll_up;
+                          }
+
+                          case '5':
+                          {
+                            return Mouse::scroll_down;
+                          }
+
+                          default:
+                          {
+                            break;
+                          }
+                        }
+
+                        break;
+                      }
+
+                      default:
+                      {
+                        break;
+                      }
+                    }
+
+                    break;
+                  }
+
+                  default:
+                  {
+                    break;
+                  }
+                }
+
+                break;
+              }
+            }
+
+            return static_cast<char32_t>(key[0]);
+          }
+
+          case 'M':
+          {
+            // 1000 mouse event
+
+            char mouse[3] {0};
+
+            if ((ec = read(STDIN_FILENO, &mouse[0], 3)) != 3)
+            {
+              if ((ec == -1) && (errno != EAGAIN))
+              {
+                throw std::runtime_error("read failed");
+              }
+
+              return static_cast<char32_t>(key[0]);
+            }
+
+            if (str != nullptr)
+            {
+              str->assign(mouse, 3);
+            }
+
+            switch (mouse[0] & 0x03)
+            {
+              case 0:
+              {
+                if (mouse[0] & 0x40)
+                {
+                  return Mouse::scroll_up;
+                }
+
+                return Mouse::btn1_press;
+              }
+
+              case 1:
+              {
+                if (mouse[0] & 0x40)
+                {
+                  return Mouse::scroll_down;
+                }
+
+                return Mouse::btn2_press;
+              }
+
+              case 2:
+              {
+                return Mouse::btn3_press;
+              }
+
+              case 3:
+              {
+                return Mouse::btn_release;
+              }
+
+              default:
+              {
+                break;
+              }
+            }
+
+            return Mouse::null;
+          }
+
+          default:
+          {
+            return static_cast<char32_t>(key[0]);
+          }
+        }
+      }
+    }
+  }
+
+  return static_cast<char32_t>(key[0]);
+}
+
+class Stdin
+{
+public:
+
+  Stdin()
+  {
+    _fp = std::fopen("/dev/tty", "r");
+    if (! _fp)
+    {
+      throw std::runtime_error("could not open stdin");
+    }
+
+    _fd = fileno(_fp);
+  }
+
+  ~Stdin()
+  {
+    if (_fp)
+    {
+      std::fclose(_fp);
+    }
+  }
+
+  int fd()
+  {
+    return _fd;
+  }
+
+  FILE* fp()
+  {
+    return _fp;
+  }
+
+private:
+
+  int _fd {0};
+  FILE* _fp {NULL};
+};
+
 class Mode
 {
 public:
 
   Mode()
   {
+    if (tcgetattr(_stdin.fd(), &_old) == -1)
+    {
+      throw std::runtime_error("tcgetattr failed");
+    }
   }
 
   ~Mode()
@@ -44,9 +523,19 @@ public:
     }
   }
 
+  operator bool()
+  {
+    return _cooked;
+  }
+
   void set_cooked()
   {
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &_old) == -1)
+    if (_cooked)
+    {
+      return;
+    }
+
+    if (tcsetattr(_stdin.fd(), TCSAFLUSH, &_old) == -1)
     {
       throw std::runtime_error("tcsetattr failed");
     }
@@ -56,9 +545,9 @@ public:
 
   void set_raw()
   {
-    if (tcgetattr(STDIN_FILENO, &_old) == -1)
+    if (! _cooked)
     {
-      throw std::runtime_error("tcgetattr failed");
+      return;
     }
 
     _raw = _old;
@@ -67,10 +556,10 @@ public:
     _raw.c_lflag &= static_cast<tcflag_t>(~(ECHO | ECHONL | ICANON | ISIG | IEXTEN));
     _raw.c_cflag &= static_cast<tcflag_t>(~(CSIZE | PARENB));
     _raw.c_cflag |= static_cast<tcflag_t>(CS8);
-    _raw.c_cc[VMIN]  = 0;
-    _raw.c_cc[VTIME] = 0;
+    _raw.c_cc[VMIN]  = _min;
+    _raw.c_cc[VTIME] = _timeout;
 
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &_raw) == -1)
+    if (tcsetattr(_stdin.fd(), TCSAFLUSH, &_raw) == -1)
     {
       throw std::runtime_error("tcsetattr failed");
     }
@@ -78,12 +567,93 @@ public:
     _cooked = false;
   }
 
+  void set_timeout(int val = 0)
+  {
+    if (_timeout == val)
+    {
+      return;
+    }
+
+    _timeout = val;
+
+    if (_cooked)
+    {
+      return;
+    }
+
+    _raw.c_cc[VTIME] = _timeout;
+
+    if (tcsetattr(_stdin.fd(), TCSAFLUSH, &_raw) == -1)
+    {
+      throw std::runtime_error("tcsetattr failed");
+    }
+  }
+
+  int get_timeout()
+  {
+    return _timeout;
+  }
+
+  void set_min(int val = 0)
+  {
+    if (_min == val)
+    {
+      return;
+    }
+
+    _min = val;
+
+    if (_cooked)
+    {
+      return;
+    }
+
+    _raw.c_cc[VMIN] = _min;
+
+    if (tcsetattr(_stdin.fd(), TCSAFLUSH, &_raw) == -1)
+    {
+      throw std::runtime_error("tcsetattr failed");
+    }
+  }
+
+  int get_min()
+  {
+    return _min;
+  }
+
 private:
 
+  Stdin _stdin;
   termios _old;
   termios _raw;
   bool _cooked {true};
+  int _timeout {0};
+  int _min {0};
 }; // class Mode
+
+inline bool press_to_continue(std::string const& str = "ANY KEY", char32_t val = 0)
+{
+  std::cerr
+  << "Press " << str << " to continue";
+
+  Mode _term_mode;
+  _term_mode.set_min(1);
+  _term_mode.set_raw();
+
+  bool res {false};
+  char32_t key {0};
+  if ((key = get_key()) > 0)
+  {
+    res = (val == 0 ? true : val == key);
+  }
+
+  _term_mode.set_cooked();
+
+  std::cerr
+  << "\n";
+
+  return res;
+}
 
 inline std::string env_var(std::string const& str)
 {
@@ -169,6 +739,9 @@ inline int size(std::size_t& width_, std::size_t& height_, std::size_t fd_ = STD
 namespace ANSI_Escape_Codes
 {
 
+// constants
+std::string const space {" "};
+
 // standard escaped characters
 std::string const cr {"\r"};
 std::string const nl {"\n"};
@@ -187,6 +760,10 @@ std::string const reset {esc + "c"};
 // clear all attributes
 std::string const clear {esc + "[0m"};
 
+// mouse
+std::string const mouse_enable {esc + "[?1000;1006h"};
+std::string const mouse_disable {esc + "[?1000;1006l"};
+
 // style
 std::string const bold {esc + "[1m"};
 std::string const dim {esc + "[2m"};
@@ -197,6 +774,9 @@ std::string const rblink {esc + "[6m"};
 std::string const reverse {esc + "[7m"};
 std::string const conceal {esc + "[8m"};
 std::string const cross {esc + "[9m"};
+
+// TODO add negative of each style attr
+std::string const nbold {esc + "[22m"};
 
 // screen
 std::string const screen_push {esc + "[?1049h"};
@@ -218,14 +798,8 @@ std::string const erase_up {esc + "[1J"};
 std::string const cursor_hide {esc + "[?25l"};
 std::string const cursor_show {esc + "[?25h"};
 
-// cursor movement
-std::string const cursor_home {esc + "[H"};
-std::string const cursor_up {esc + "[1A"};
-std::string const cursor_down {esc + "[1B"};
-std::string const cursor_right {esc + "[1C"};
-std::string const cursor_left {esc + "[1D"};
-
 // cursor position
+std::string const cursor_home {esc + "[H"};
 std::string const cursor_save {esc + "7"};
 std::string const cursor_load {esc + "8"};
 
@@ -248,6 +822,296 @@ std::string const bg_blue {esc + "[44m"};
 std::string const bg_magenta {esc + "[45m"};
 std::string const bg_cyan {esc + "[46m"};
 std::string const bg_white {esc + "[47m"};
+
+// foreground color bright
+std::string const fg_black_bright {esc + "[90m"};
+std::string const fg_red_bright {esc + "[91m"};
+std::string const fg_green_bright {esc + "[92m"};
+std::string const fg_yellow_bright {esc + "[99m"};
+std::string const fg_blue_bright {esc + "[94m"};
+std::string const fg_magenta_bright {esc + "[95m"};
+std::string const fg_cyan_bright {esc + "[96m"};
+std::string const fg_white_bright {esc + "[97m"};
+
+// background color bright
+std::string const bg_black_bright {esc + "[100m"};
+std::string const bg_red_bright {esc + "[101m"};
+std::string const bg_green_bright {esc + "[102m"};
+std::string const bg_yellow_bright {esc + "[103m"};
+std::string const bg_blue_bright {esc + "[104m"};
+std::string const bg_magenta_bright {esc + "[105m"};
+std::string const bg_cyan_bright {esc + "[106m"};
+std::string const bg_white_bright {esc + "[107m"};
+
+// box drawing
+// TODO add box drawing chars
+
+inline std::string cursor_up(std::size_t val = 1)
+{
+  return val ? esc + "[" + std::to_string(val) + "A" : "";
+}
+
+inline std::string cursor_down(std::size_t val = 1)
+{
+  return val ? esc + "[" + std::to_string(val) + "B" : "";
+}
+
+inline std::string cursor_right(std::size_t val = 1)
+{
+  return val ? esc + "[" + std::to_string(val) + "C" : "";
+}
+
+inline std::string cursor_left(std::size_t val = 1)
+{
+  return val ? esc + "[" + std::to_string(val) + "D" : "";
+}
+
+inline std::string cursor_set(std::size_t x_, std::size_t y_)
+{
+  std::stringstream ss;
+  ss << esc << "[" << y_ << ";" << x_ << "H";
+
+  return ss.str();
+}
+
+inline int cursor_get(std::size_t& x_, std::size_t& y_, bool mode_ = true)
+{
+  Term::Mode mode;
+
+  if (mode_)
+  {
+    mode.set_raw();
+  }
+
+  std::cout << (esc + "[6n") << std::flush;
+
+  char buf[32];
+  std::uint8_t i {0};
+
+  // attempt to read response for up to 1 second
+  for (int retry = 20; i < sizeof(buf) - 1; ++i)
+  {
+    while (retry-- > 0 && read(STDIN_FILENO, &buf[i], 1) != 1)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    if (buf[i] == 'R')
+    {
+      break;
+    }
+  }
+
+  buf[i] = '\0';
+  if (buf[0] != '\x1b' || buf[1] != '[')
+  {
+    return -1;
+  }
+
+  int x;
+  int y;
+  if (std::sscanf(&buf[2], "%d;%d", &y, &x) != 2)
+  {
+    return -1;
+  }
+
+  x_ = static_cast<std::size_t>(x);
+  y_ = static_cast<std::size_t>(y);
+
+  return 0;
+}
+
+inline std::string str_to_fg_color(std::string const& str_, bool bright_ = false)
+{
+  if ("black" == str_)
+  {
+    if (bright_)
+    {
+      return fg_black_bright;
+    }
+    else
+    {
+      return fg_black;
+    }
+  }
+  else if ("red" == str_)
+  {
+    if (bright_)
+    {
+      return fg_red_bright;
+    }
+    else
+    {
+      return fg_red;
+    }
+  }
+  else if ("green" == str_)
+  {
+    if (bright_)
+    {
+      return fg_green_bright;
+    }
+    else
+    {
+      return fg_green;
+    }
+  }
+  else if ("yellow" == str_)
+  {
+    if (bright_)
+    {
+      return fg_yellow_bright;
+    }
+    else
+    {
+      return fg_yellow;
+    }
+  }
+  else if ("blue" == str_)
+  {
+    if (bright_)
+    {
+      return fg_blue_bright;
+    }
+    else
+    {
+      return fg_blue;
+    }
+  }
+  else if ("magenta" == str_)
+  {
+    if (bright_)
+    {
+      return fg_magenta_bright;
+    }
+    else
+    {
+      return fg_magenta;
+    }
+  }
+  else if ("cyan" == str_)
+  {
+    if (bright_)
+    {
+      return fg_cyan_bright;
+    }
+    else
+    {
+      return fg_cyan;
+    }
+  }
+  else if ("white" == str_)
+  {
+    if (bright_)
+    {
+      return fg_white_bright;
+    }
+    else
+    {
+      return fg_white;
+    }
+  }
+  else
+  {
+    return {};
+  }
+}
+
+inline std::string str_to_bg_color(std::string const& str_, bool bright_ = false)
+{
+  if ("black" == str_)
+  {
+    if (bright_)
+    {
+      return bg_black_bright;
+    }
+    else
+    {
+      return bg_black;
+    }
+  }
+  else if ("red" == str_)
+  {
+    if (bright_)
+    {
+      return bg_red_bright;
+    }
+    else
+    {
+      return bg_red;
+    }
+  }
+  else if ("green" == str_)
+  {
+    if (bright_)
+    {
+      return bg_green_bright;
+    }
+    else
+    {
+      return bg_green;
+    }
+  }
+  else if ("yellow" == str_)
+  {
+    if (bright_)
+    {
+      return bg_yellow_bright;
+    }
+    else
+    {
+      return bg_yellow;
+    }
+  }
+  else if ("blue" == str_)
+  {
+    if (bright_)
+    {
+      return bg_blue_bright;
+    }
+    else
+    {
+      return bg_blue;
+    }
+  }
+  else if ("magenta" == str_)
+  {
+    if (bright_)
+    {
+      return bg_magenta_bright;
+    }
+    else
+    {
+      return bg_magenta;
+    }
+  }
+  else if ("cyan" == str_)
+  {
+    if (bright_)
+    {
+      return bg_cyan_bright;
+    }
+    else
+    {
+      return bg_cyan;
+    }
+  }
+  else if ("white" == str_)
+  {
+    if (bright_)
+    {
+      return bg_white_bright;
+    }
+    else
+    {
+      return bg_white;
+    }
+  }
+  else
+  {
+    return {};
+  }
+}
 
 inline std::string fg_256(std::string const& str_)
 {
@@ -314,13 +1178,13 @@ inline std::string fg_true(std::string str_)
   std::string const h2 {str_.substr(2, 2)};
   std::string const h3 {str_.substr(4, 2)};
 
-  std::stringstream ss; ss
+  std::ostringstream os; os
   << esc << "[38;2;"
   << htoi(h1) << ";"
   << htoi(h2) << ";"
   << htoi(h3) << "m";
 
-  return ss.str();
+  return os.str();
 }
 
 inline std::string bg_true(std::string str_)
@@ -341,61 +1205,6 @@ inline std::string bg_true(std::string str_)
   << htoi(h3) << "m";
 
   return ss.str();
-}
-
-inline std::string cursor_set(std::size_t x_, std::size_t y_)
-{
-  std::stringstream ss;
-  ss << esc << "[" << y_ << ";" << x_ << "H";
-
-  return ss.str();
-}
-
-inline int cursor_get(std::size_t& x_, std::size_t& y_, bool mode_ = true)
-{
-  Term::Mode mode;
-
-  if (mode_)
-  {
-    mode.set_raw();
-  }
-
-  std::cout << (esc + "[6n") << std::flush;
-
-  char buf[32];
-  std::uint8_t i {0};
-
-  // attempt to read response for up to 1 second
-  for (int retry = 20; i < sizeof(buf) - 1; ++i)
-  {
-    while (retry-- > 0 && read(STDIN_FILENO, &buf[i], 1) != 1)
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-
-    if (buf[i] == 'R')
-    {
-      break;
-    }
-  }
-
-  buf[i] = '\0';
-  if (buf[0] != '\x1b' || buf[1] != '[')
-  {
-    return -1;
-  }
-
-  int x;
-  int y;
-  if (std::sscanf(&buf[2], "%d;%d", &y, &x) != 2)
-  {
-    return -1;
-  }
-
-  x_ = static_cast<std::size_t>(x);
-  y_ = static_cast<std::size_t>(y);
-
-  return 0;
 }
 
 template<typename T>
@@ -485,6 +1294,53 @@ protected:
         _streambuf->sputc('\n');
       }
 
+      // if (_width != std::numeric_limits<std::size_t>::max())
+      // {
+      //   while (_size + _prefix.size() < _width)
+      //   {
+      //     ++_size;
+      //     _streambuf->sputc(' ');
+      //   }
+      // }
+
+      _size = 0;
+      _buffer.clear();
+      _esc_seq.clear();
+
+      return *this;
+    }
+
+    streambuf& endl()
+    {
+      if (! _buffer.empty())
+      {
+        if (_size)
+        {
+          if (! _white_space && ! _buffer.empty() && _buffer.back() == ' ')
+          {
+            _buffer.erase(_buffer.size() - 1);
+          }
+
+          _streambuf->sputn(_prefix.data(), static_cast<std::streamsize>(_prefix.size()));
+          _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
+        }
+        else
+        {
+          _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
+        }
+      }
+
+      // if (_width != std::numeric_limits<std::size_t>::max())
+      // {
+      //   while (_size + _prefix.size() < _width)
+      //   {
+      //     ++_size;
+      //     _streambuf->sputc(' ');
+      //   }
+      // }
+
+      _streambuf->sputc('\n');
+
       _size = 0;
       _buffer.clear();
       _esc_seq.clear();
@@ -520,6 +1376,7 @@ protected:
 
       return *this;
     }
+
 
     streambuf& width(std::size_t val_)
     {
@@ -686,6 +1543,12 @@ protected:
               _streambuf->sputn(_prefix.data(), static_cast<std::streamsize>(_prefix.size()));
               _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
 
+              // while (_size + _prefix.size() < _width)
+              // {
+              //   ++_size;
+              //   _streambuf->sputc(' ');
+              // }
+
               _size = 0;
               _buffer.clear();
             }
@@ -745,6 +1608,16 @@ protected:
 
           _streambuf->sputn(_prefix.data(), static_cast<std::streamsize>(_prefix.size()));
           _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
+
+          // if (_width != std::numeric_limits<std::size_t>::max())
+          // {
+          //   while (_size + _prefix.size() < _width)
+          //   {
+          //     ++_size;
+          //     _streambuf->sputc(' ');
+          //   }
+          // }
+
           _streambuf->sputc(ch_);
 
           _size = 0;
@@ -785,6 +1658,12 @@ protected:
             {
               _streambuf->sputn(_prefix.data(), static_cast<std::streamsize>(_prefix.size()));
               _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
+
+              // while (_size + _prefix.size() < _width)
+              // {
+              //   ++_size;
+              //   _streambuf->sputc(' ');
+              // }
 
               _size = 0;
               _buffer.clear();
@@ -836,6 +1715,12 @@ protected:
             {
               _streambuf->sputn(_prefix.data(), static_cast<std::streamsize>(_prefix.size()));
               _streambuf->sputn(_buffer.data(), static_cast<std::streamsize>(_buffer.size()));
+
+              // while (_size + _prefix.size() < _width)
+              // {
+              //   ++_size;
+              //   _streambuf->sputc(' ');
+              // }
 
               _size = 0;
               _buffer.clear();
@@ -911,6 +1796,14 @@ public:
   ostream& flush()
   {
     _stream.flush();
+    std::ostream::flush();
+
+    return *this;
+  }
+
+  ostream& endl()
+  {
+    _stream.endl();
     std::ostream::flush();
 
     return *this;
@@ -1022,6 +1915,26 @@ public:
     return derived;
   }
 }; // class flush
+
+class endl
+{
+public:
+
+  friend Term::ostream& operator<<(Term::ostream& os_, endl const&)
+  {
+    os_.endl();
+
+    return os_;
+  }
+
+  friend Term::ostream& operator<<(std::ostream& os_, endl const&)
+  {
+    auto& derived = dynamic_cast<Term::ostream&>(os_);
+    derived.endl();
+
+    return derived;
+  }
+}; // class endl
 
 class push
 {

@@ -1,166 +1,82 @@
+#include "info.hh"
+
 #include "ob/parg.hh"
 using Parg = OB::Parg;
 
 #include "ob/term.hh"
+namespace iom = OB::Term::iomanip;
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
 #include "peaclock/tui.hh"
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <cstddef>
 
 #include <string>
 #include <iostream>
 
-// prototypes
-int program_options(Parg& pg);
-
-int program_options(Parg& pg)
-{
-  pg.name("peaclock").version("0.2.0 (18.02.2019)");
-  pg.description("A colourful binary clock for the terminal.");
-  pg.usage("[--config=<path>]");
-  pg.usage("[-h|--help]");
-  pg.usage("[-v|--version]");
-  pg.usage("[--license]");
-  pg.info("Key Bindings", {
-    "q\n    quit the program",
-    ":\n    enter the command prompt",
-  });
-  pg.info("Commands", {
-    "q\n    quit the program",
-    "reset\n    reset all settings",
-    "set char <single_char>\n    set the binary clock character symbol",
-    "set hour <12|24>\n    set 12 or 24 hour time",
-    "set bold <on|off>\n    toggle bold style",
-    "set compact <on|off>\n    toggle compact style",
-    "set binary <on|off>\n    toggle binary clock",
-    "set digital <on|off>\n    toggle digital clock",
-    "set active <#000000-#ffffff|0-255|Colour>\n    set active colour to 24-bit, 8-bit, or 4-bit value",
-    "set inactive <#000000-#ffffff|0-255|Colour>\n    set inactive colour to 24-bit, 8-bit, or 4-bit value",
-  });
-  pg.info("Colour", {
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-  });
-  pg.info("Config Directory Locations", {
-    "${XDG_CONFIG_HOME}/peaclock",
-    "${HOME}/.peaclock",
-  });
-  pg.info("Config File Locations", {
-    "${XDG_CONFIG_HOME}/peaclock/config",
-    "${HOME}/.peaclock/config",
-    "custom path with '--config=<path>'"
-  });
-  pg.info("Examples", {
-    "peaclock",
-    "peaclock --config './path/to/config'",
-    "peaclock --help",
-    "peaclock --version",
-    "peaclock --license",
-  });
-  pg.info("Exit Codes", {"0 -> normal", "1 -> error"});
-  pg.info("Repository", {
-    "https://github.com/octobanana/peaclock.git",
-  });
-  pg.info("Homepage", {
-    "https://octobanana.com/software/peaclock",
-  });
-  pg.author("Brett Robinson (octobanana) <octobanana.dev@gmail.com>");
-
-  // general flags
-  pg.set("help,h", "print the help output");
-  pg.set("version,v", "print the program version");
-  pg.set("license", "print the program license");
-
-  // options
-  pg.set("config", "", "path", "custom path to config file");
-
-  int status {pg.parse()};
-
-  if (status < 0)
-  {
-    std::cerr << pg.help() << "\n";
-    std::cerr << "Error: " << pg.error() << "\n";
-
-    auto const similar_names = pg.similar();
-    if (similar_names.size() > 0)
-    {
-      std::cerr
-      << "did you mean:\n";
-      for (auto const& e : similar_names)
-      {
-        std::cerr
-        << "  --" << e << "\n";
-      }
-    }
-
-    return -1;
-  }
-
-  if (pg.get<bool>("help"))
-  {
-    std::cerr << pg.help();
-
-    return 1;
-  }
-
-  if (pg.get<bool>("version"))
-  {
-    std::cerr << pg.name() << " v" << pg.version() << "\n";
-
-    return 1;
-  }
-
-  if (pg.get<bool>("license"))
-  {
-    std::cerr << R"(MIT License
-
-Copyright (c) 2019 Brett Robinson
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.)" << "\n";
-
-    return 1;
-  }
-
-  return 0;
-}
+#include <filesystem>
+namespace fs = std::filesystem;
 
 int main(int argc, char *argv[])
 {
+  std::ios_base::sync_with_stdio(false);
+
   Parg pg {argc, argv};
-  int pstatus {program_options(pg)};
-  if (pstatus > 0) return 0;
-  if (pstatus < 0) return 1;
+  auto const pg_status {program_info(pg)};
+  if (pg_status > 0) return 0;
+  if (pg_status < 0) return 1;
 
   try
   {
     // init
     Tui tui;
 
-    // load config file
-    tui.config(pg.get("config"));
+    if (! OB::Term::is_term(STDOUT_FILENO))
+    {
+      throw std::runtime_error("stdout is not a tty");
+    }
+
+    if (! OB::Term::is_term(STDIN_FILENO))
+    {
+      // reset stdin
+      int tty = open("/dev/tty", O_RDONLY);
+      dup2(tty, STDIN_FILENO);
+      close(tty);
+    }
+
+    // load files
+    {
+      // determine config directory
+      // default to '~/.peaclock'
+      fs::path config_dir {pg.find("config-dir") ?
+        pg.get<fs::path>("config-dir") :
+        fs::path(OB::Term::env_var("HOME") + "/." + pg.name())};
+
+      if (config_dir != "NONE" &&
+        fs::exists(config_dir) && fs::is_directory(config_dir))
+      {
+        // set config directory
+        tui.base_config(config_dir);
+
+        // check/create default directories
+        fs::path history_dir {config_dir / fs::path("history")};
+
+        if (! fs::exists(history_dir) || ! fs::is_directory(history_dir))
+        {
+          fs::create_directory(history_dir);
+        }
+
+        // load history files
+        tui.load_hist_command(history_dir / fs::path("command"));
+
+        // load config file
+        tui.load_config(pg.find("config") ? pg.get<fs::path>("config") :
+          config_dir / fs::path("config"));
+      }
+    }
 
     // start event loop
     tui.run();

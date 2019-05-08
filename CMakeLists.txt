@@ -15,11 +15,11 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set (CMAKE_CXX_FLAGS "-std=c++17 -fdiagnostics-color=auto")
 
-set (DEBUG_FLAGS "-g -Wpedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused")
+set (DEBUG_FLAGS "-g -Og -rdynamic -Wpedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused")
 set (DEBUG_LINK_FLAGS "-fprofile-arcs -ftest-coverage")
 
-set (RELEASE_FLAGS "-s -O3")
-set (RELEASE_LINK_FLAGS "-flto")
+set (RELEASE_FLAGS "-O3 -flto")
+set (RELEASE_LINK_FLAGS "-O3 -flto -s")
 
 set (CMAKE_CXX_FLAGS_DEBUG ${DEBUG_FLAGS})
 set (CMAKE_EXE_LINKER_FLAGS_DEBUG ${DEBUG_LINK_FLAGS})
@@ -31,10 +31,9 @@ message ("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 set (SOURCES
   src/main.cc
-  src/ob/util.cc
   src/ob/string.cc
+  src/ob/readline.cc
   src/peaclock/tui.cc
-  src/peaclock/readline.cc
   src/peaclock/peaclock.cc
 )
 
@@ -51,6 +50,9 @@ target_include_directories(
 
 target_link_libraries (
   ${TARGET}
+  stdc++fs
+  icuuc
+  icui18n
 )
 
 install (TARGETS ${TARGET} DESTINATION bin)

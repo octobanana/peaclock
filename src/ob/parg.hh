@@ -25,7 +25,11 @@
 #ifndef OB_PARG_HH
 #define OB_PARG_HH
 
+#include "ob/algorithm.hh"
 #include "ob/string.hh"
+#include "ob/term.hh"
+namespace iom = OB::Term::iomanip;
+namespace aec = OB::Term::ANSI_Escape_Codes;
 
 #include <unistd.h>
 
@@ -43,6 +47,8 @@
 #include <regex>
 #include <algorithm>
 #include <type_traits>
+#include <filesystem>
+#include <functional>
 
 namespace OB
 {
@@ -50,6 +56,33 @@ namespace OB
 class Parg
 {
 public:
+
+  struct Style
+  {
+    std::string h1 {aec::fg_magenta + aec::underline};
+    std::string h2 {aec::fg_green};
+    std::string p {aec::fg_white_bright};
+    std::string pa {aec::fg_white};
+    std::string opt {aec::fg_green};
+    std::string arg {aec::fg_yellow};
+    std::string val {aec::fg_cyan};
+    std::string success {aec::fg_green};
+    std::string error {aec::fg_red};
+  } style;
+
+  struct Section
+  {
+    std::string head;
+    std::vector<std::pair<std::string, std::string>> body;
+  };
+
+  struct Section_Command
+  {
+    std::string head;
+    std::vector<std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> body;
+  };
+
+  using Output = std::function<void(OB::Term::ostream&, Style const&)>;
 
   Parg()
   {
@@ -61,7 +94,18 @@ public:
     argvf(_argv);
   }
 
-  Parg& name(std::string const _name)
+  bool color()
+  {
+    return color_;
+  }
+
+  Parg& color(bool const val)
+  {
+    color_ = val;
+    return *this;
+  }
+
+  Parg& name(std::string const& _name)
   {
     name_ = _name;
     return *this;
@@ -72,7 +116,7 @@ public:
     return name_;
   }
 
-  Parg& version(std::string const _version)
+  Parg& version(std::string const& _version)
   {
     version_ = _version;
     return *this;
@@ -80,21 +124,62 @@ public:
 
   std::string version() const
   {
-    return version_;
+    if (version_.empty())
+    {
+      return {};
+    }
+
+    std::ostringstream out;
+    OB::Term::ostream os {out};
+    ostream_init(os);
+
+    os
+    << aec::wrap(name_, style.h2)
+    << " "
+    << aec::wrap(version_, style.p)
+#ifdef DEBUG
+    << " "
+    << aec::wrap("DEBUG", style.error)
+#endif
+    << "\n";
+
+    return out.str();
   }
 
-  Parg& usage(std::string const _usage)
+  Parg& usage(std::string const& _usage)
   {
-    usage_ += "  " + name_ + " " + _usage + "\n";
+    usage_.emplace_back(name_ + " " + _usage);
     return *this;
   }
 
   std::string usage() const
   {
-    return usage_;
+    if (usage_.empty())
+    {
+      return {};
+    }
+
+    std::ostringstream out;
+    OB::Term::ostream os {out};
+    ostream_init(os);
+
+    os << aec::wrap("Usage", style.h1) << iom::push();
+
+    bool alt {false};
+
+    for (auto const& e : usage_)
+    {
+      os << aec::wrap(e, (alt ? style.pa : style.p)) << "\n";
+
+      alt = ! alt;
+    }
+
+    os << iom::pop();
+
+    return out.str();
   }
 
-  Parg& description(std::string const _description)
+  Parg& description(std::string const& _description)
   {
     description_ = _description;
     return *this;
@@ -105,13 +190,112 @@ public:
     return description_;
   }
 
-  Parg& info(std::string const _title, std::vector<std::string> const _text)
+  Parg& info(Output const& out)
   {
-    info_.emplace_back(info_pair{_title, _text});
+    info_.emplace_back(out);
     return *this;
   }
 
-  Parg& author(std::string const _author)
+  Parg& info(Section const& s)
+  {
+    info([s](auto& os, auto const& st)
+    {
+      os << aec::wrap(s.head, st.h1) << iom::push();
+
+      bool alt {false};
+
+      for (auto const& [k, v] : s.body)
+      {
+        if (k.empty())
+        {
+          os << aec::wrap(v, (alt ? st.pa : st.p)) << "\n";
+        }
+        else
+        {
+          OB::Algorithm::for_each(OB::String::split_view(k, ", "),
+          [&os, &st](auto const& obj)
+          {
+            os << st.h2 << obj << st.p << ", ";
+          },
+          [&os, &st](auto const& obj)
+          {
+            os << st.h2 << obj;
+          });
+
+          os
+          << aec::clear << iom::push()
+          << aec::wrap(v, (alt ? st.pa : st.p)) << iom::pop();
+        }
+
+        alt = ! alt;
+      }
+
+      os << "\n" << iom::pop();
+    });
+
+    return *this;
+  }
+
+  Parg& info(Section_Command const& s)
+  {
+    info([s](auto& os, auto const& st)
+    {
+      os << aec::wrap(s.head, st.h1) << iom::push();
+
+      bool alt {false};
+
+      for (auto const& [k, v] : s.body)
+      {
+        auto const cmd = OB::String::split_view(k, " ", 2);
+
+        os
+        << iom::word_break(false)
+        << aec::wrap(cmd.at(0), st.h2);
+
+        if (cmd.size() == 2)
+        {
+          os << " " << aec::wrap(cmd.at(1), (v.at(0).first.empty() ? st.arg : st.val));
+        }
+        else if (cmd.size() >= 3)
+        {
+          os
+          << " " << aec::wrap(cmd.at(1), st.val)
+          << " " << aec::wrap(cmd.at(2), st.arg);
+        }
+
+        os
+        << iom::word_break(true)
+        << iom::push();
+
+        for (auto const& [k1, v1] : v)
+        {
+          if (k1.empty())
+          {
+            os << aec::wrap(v1, (alt ? st.pa : st.p)) << iom::pop();
+          }
+          else
+          {
+            os
+            << aec::wrap(k1, st.val) << iom::push()
+            << aec::wrap(v1, (alt ? st.pa : st.p)) << iom::pop();
+          }
+
+          alt = ! alt;
+        }
+
+        if (! v.at(0).first.empty())
+        {
+          os << iom::pop();
+        }
+      }
+
+      os << "\n" << iom::pop();
+    });
+
+    return *this;
+  }
+
+  Parg& author(std::string const& _author)
   {
     author_ = _author;
     return *this;
@@ -122,54 +306,137 @@ public:
     return author_;
   }
 
+  std::string license() const
+  {
+    std::ostringstream out;
+    OB::Term::ostream os {out};
+    ostream_init(os);
+
+    os
+    << aec::wrap("MIT License", style.h1)
+    << "\n\n"
+    << aec::wrap("Copyright (c) 2019 Brett Robinson", style.h2)
+    << "\n\n"
+    << iom::first_wrap(true)
+    << style.p
+    << R"(Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.)"
+    << "\n";
+
+    return out.str();
+  }
+
+  void ostream_init(OB::Term::ostream& os) const
+  {
+    if (OB::Term::is_term(STDOUT_FILENO))
+    {
+      std::size_t width {0};
+      OB::Term::width(width, STDOUT_FILENO);
+      os.width(width);
+      os.line_wrap(true);
+    }
+    else
+    {
+      os.line_wrap(false);
+    }
+
+    os.escape_codes(color_);
+    os.indent(2);
+    os.first_wrap(false);
+    os.white_space(false);
+  }
+
   std::string help() const
   {
-    std::stringstream out;
+    std::ostringstream out;
+    OB::Term::ostream os {out};
+    ostream_init(os);
+
     if (! description_.empty())
     {
-      out << name_ << ":" << "\n";
-      std::stringstream ss;
-      out << "  " << description_ << "\n";
-      out << ss.str() << "\n";
+      os
+      << aec::wrap(name_, style.h1) << iom::push()
+      << aec::wrap(description_, style.p) << iom::pop();
     }
 
     if (! usage_.empty())
     {
-      out << "Usage: " << "\n"
-        << usage_ << "\n";
+      os
+      << "\n"
+      << aec::wrap("Usage", style.h1) << iom::push();
+
+      bool alt {false};
+
+      for (auto const& e : usage_)
+      {
+        os << aec::wrap(e, (alt ? style.pa : style.p)) << "\n";
+
+        alt = ! alt;
+      }
+
+      os << "\n" << iom::pop();
     }
 
-    if (! modes_.empty())
+    // options
+    if (! data_.empty())
     {
-      out << "Flags: " << "\n"
-        << modes_;
-    }
+      os << aec::wrap("Options", style.h1) << iom::push();
 
-    if (! options_.empty())
-    {
-      out << "\nOptions: " << "\n"
-        << options_;
+      bool alt {false};
+
+      for (auto const& v : data_)
+      {
+        auto const& e = v.second;
+
+        if (! e.short_.empty())
+        {
+          os << aec::wrap("-" + e.short_, style.opt);
+        }
+
+        if (! e.short_.empty() && ! e.long_.empty())
+        {
+          os << aec::wrap(", ", style.p);
+        }
+
+        if (! e.long_.empty())
+        {
+          os << aec::wrap("--" + e.long_, style.opt);
+        }
+
+        if (! e.mode_)
+        {
+          os
+          << aec::wrap("=", style.p)
+          << aec::wrap("<" + e.arg_ + ">", style.arg);
+        }
+
+        os
+        << iom::push()
+        << aec::wrap(e.info_, (alt ? style.pa : style.p))
+        << iom::pop();
+
+        alt = ! alt;
+      }
+
+      os << "\n" << iom::pop();
     }
 
     if (! info_.empty())
     {
       for (auto const& e : info_)
       {
-        out << "\n" << e.title << ":" << "\n";
-
-        for (auto const& t : e.text)
-        {
-          out << "  " << t << "\n";
-        }
+        e(os, style);
       }
     }
 
     if (! author_.empty())
     {
-      out << "\nAuthor: " << "\n";
-      std::stringstream ss;
-      ss << "  " << author_ << "\n";
-      out << ss.str();
+      os
+      << aec::wrap("Author", style.h1) << iom::push()
+      << aec::wrap(author_, style.p) << iom::pop();
     }
 
     return out.str();
@@ -197,7 +464,7 @@ public:
     return status_;
   }
 
-  int parse(std::string str)
+  int parse(std::string const& str)
   {
     auto args = str_to_args(str);
     status_ = parse_args(args.size(), args);
@@ -219,7 +486,6 @@ public:
       if (e.find_first_not_of(" \n\t\"'") != std::string::npos)
       {
         bool escaped {false};
-        std::size_t start {i};
         args.emplace_back("");
         for (;i < str.size(); ++i)
         {
@@ -268,7 +534,6 @@ public:
         bool escaped {false};
         ++i; // skip start quote
         args.emplace_back("");
-        std::size_t start {i};
         for (;i < str.size(); ++i)
         {
           e = str.at(i);
@@ -296,7 +561,7 @@ public:
     return args;
   }
 
-  void set(std::string _name, std::string _info)
+  void set(std::string const& _name, std::string const& _info)
   {
     // sets a flag
     std::string delim {","};
@@ -324,7 +589,7 @@ public:
       data_[_long].short_ = _short;
       data_[_long].mode_ = true;
       data_[_long].value_ = "0";
-      modes_.append("  -" + _short + ", --" + _long + "\n");
+      data_[_long].info_ = _info;
     }
     else
     {
@@ -336,7 +601,7 @@ public:
         data_[_name].short_ = _name;
         data_[_name].mode_ = true;
         data_[_name].value_ = "0";
-        modes_.append("  -" + _name + "\n");
+        data_[_name].info_ = _info;
       }
       else
       {
@@ -344,16 +609,13 @@ public:
         data_[_name].long_ = _name;
         data_[_name].mode_ = true;
         data_[_name].value_ = "0";
-        modes_.append("  --" + _name + "\n");
+        data_[_name].info_ = _info;
       }
     }
-
-    std::stringstream out;
-    out << "    " << _info << "\n";
-    modes_.append(out.str());
   }
 
-  void set(std::string _name, std::string _default, std::string _arg, std::string _info)
+  void set(std::string const& _name, std::string const& _default,
+    std::string const& _arg, std::string const& _info)
   {
     // sets an option
     std::string delim {","};
@@ -380,7 +642,8 @@ public:
       data_[_long].short_ = _short;
       data_[_long].mode_ = false;
       data_[_long].value_ = _default;
-      options_.append("  -" + _short + ", --" + _long + "=<" + _arg + ">\n");
+      data_[_long].arg_ = _arg;
+      data_[_long].info_ = _info;
     }
     else
     {
@@ -392,7 +655,8 @@ public:
         data_[_name].short_ = _name;
         data_[_name].mode_ = false;
         data_[_name].value_ = _default;
-        options_.append("  -" + _name + "=<" + _arg + ">\n");
+        data_[_name].arg_ = _arg;
+        data_[_name].info_ = _info;
       }
       else
       {
@@ -400,19 +664,32 @@ public:
         data_[_name].long_ = _name;
         data_[_name].mode_ = false;
         data_[_name].value_ = _default;
-        options_.append("  --" + _name + "=<" + _arg + ">\n");
+        data_[_name].arg_ = _arg;
+        data_[_name].info_ = _info;
       }
     }
-
-    std::stringstream out;
-    out << "    " << _info << "\n";
-    options_.append(out.str());
   }
 
-  template<class T>
-  T get(std::string const _key)
+  template<typename T,
+    std::enable_if_t<
+      std::is_same_v<T, std::string> ||
+      std::is_same_v<T, std::filesystem::path>,
+      int> = 0>
+  T get(std::string const& _key)
   {
-    static_assert(! std::is_same_v<T, std::string>, "use non-template version of function for 'std::string' type");
+    if (data_.find(_key) == data_.end())
+    {
+      throw std::logic_error("parg get '" + _key + "' is not defined");
+    }
+    return data_[_key].value_;
+  }
+
+  template<typename T,
+    std::enable_if_t<
+      std::is_integral_v<T>,
+      int> = 0>
+  T get(std::string const& _key)
+  {
     if (data_.find(_key) == data_.end())
     {
       throw std::logic_error("parg get '" + _key + "' is not defined");
@@ -424,16 +701,7 @@ public:
     return val;
   }
 
-  std::string get(std::string const _key)
-  {
-    if (data_.find(_key) == data_.end())
-    {
-      throw std::logic_error("parg get '" + _key + "' is not defined");
-    }
-    return data_[_key].value_;
-  }
-
-  bool find(std::string const _key) const
+  bool find(std::string const& _key) const
   {
     // key must exist
     if (data_.find(_key) == data_.end()) return false;
@@ -484,7 +752,43 @@ public:
 
   std::string error() const
   {
-    return error_;
+    if (error_.empty())
+    {
+      return {};
+    }
+
+    std::ostringstream out;
+    OB::Term::ostream os {out};
+    ostream_init(os);
+
+    os
+    << iom::first_wrap(false)
+    << aec::wrap("Error: ", style.error)
+    << error_ << "\n"
+    << iom::first_wrap(true);
+
+    auto const similar_names = similar();
+
+    if (similar_names.size() > 0)
+    {
+      os
+      << "\nDid you mean:"
+      << style.opt << iom::push();
+
+      OB::Algorithm::for_each(similar_names,
+      [&os](auto const& e)
+      {
+        os << "--" << e << "\n";
+      },
+      [&os](auto const& e)
+      {
+        os << "--" << e;
+      });
+
+      os << aec::clear << iom::pop();
+    }
+
+    return out.str();
   }
 
   std::vector<std::string> const& similar() const
@@ -524,6 +828,8 @@ public:
 
   struct Option
   {
+    std::string arg_;
+    std::string info_;
     std::string short_;
     std::string long_;
     bool mode_;
@@ -531,24 +837,17 @@ public:
     bool seen_ {false};
   };
 
-  struct info_pair
-  {
-    std::string title;
-    std::vector<std::string> text;
-  };
-
 private:
 
   int argc_ {0};
   std::vector<std::string> argv_;
+  bool color_ {true};
   std::string name_;
   std::string version_;
-  std::string usage_;
+  std::vector<std::string> usage_;
   std::string description_;
-  std::string modes_;
-  std::string options_;
   int options_indent_ {0};
-  std::vector<info_pair> info_;
+  std::vector<Output> info_;
   std::string author_;
   std::map<std::string, Option> data_;
   std::map<std::string, std::string> flags_;
@@ -585,7 +884,7 @@ private:
     return -1;
   }
 
-  std::vector<std::string> delimit(const std::string str, const std::string delim) const
+  std::vector<std::string> delimit(std::string const& str, std::string const& delim) const
   {
     std::vector<std::string> vtok;
     std::size_t start {0};
@@ -599,7 +898,7 @@ private:
     return vtok;
   }
 
-  int parse_args(int _argc, std::vector<std::string> _argv)
+  int parse_args(int _argc, std::vector<std::string> const& _argv)
   {
     if (_argc < 1) return 1;
 
@@ -811,10 +1110,10 @@ private:
       similar_.emplace_back(val);
     }
 
-    size_t const similar__max {3};
-    if (similar_.size() > similar__max)
+    size_t const similar_max {3};
+    if (similar_.size() > similar_max)
     {
-      similar_.erase(similar_.begin() + similar__max, similar_.end());
+      similar_.erase(similar_.begin() + similar_max, similar_.end());
     }
   }
 

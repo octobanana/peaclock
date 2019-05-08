@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+#include <functional>
+
 namespace OB::Algorithm
 {
 

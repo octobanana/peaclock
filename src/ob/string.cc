@@ -3,6 +3,9 @@
 #include <cstddef>
 
 #include <string>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
 #include <string_view>
 #include <vector>
 #include <limits>
@@ -12,6 +15,52 @@
 
 namespace OB::String
 {
+
+std::string to_string(double const val, int const pre)
+{
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(pre) << val;
+
+  return ss.str();
+}
+
+std::vector<std::string> split(std::string const& str,
+  std::string const& delim, std::size_t size)
+{
+  std::vector<std::string> vtok;
+  std::size_t start {0};
+  auto end = str.find(delim);
+
+  while ((size-- > 0) && (end != std::string::npos))
+  {
+    vtok.emplace_back(str.substr(start, end - start));
+    start = end + delim.size();
+    end = str.find(delim, start);
+  }
+
+  vtok.emplace_back(str.substr(start, end));
+
+  return vtok;
+}
+
+std::vector<std::string_view> split_view(std::string_view str,
+  std::string_view delim, std::size_t size)
+{
+  std::vector<std::string_view> vtok;
+  std::size_t start {0};
+  auto end = str.find(delim);
+
+  while ((size-- > 0) && (end != std::string_view::npos))
+  {
+    vtok.emplace_back(str.data() + start, end - start);
+    start = end + delim.size();
+    end = str.find(delim, start);
+  }
+
+  vtok.emplace_back(str.data() + start, str.size() - start);
+
+  return vtok;
+}
 
 std::string lowercase(std::string const& str)
 {
@@ -81,7 +130,7 @@ std::optional<std::vector<std::string>> match(std::string const& str, std::regex
   return {};
 }
 
-std::string repeat(std::string const& str, std::size_t num)
+std::string repeat(std::size_t const num, std::string const& str)
 {
   if (num == 0)
   {
@@ -117,6 +166,169 @@ bool starts_with(std::string const& str, std::string const& val)
   }
 
   return false;
+}
+
+std::string escape(std::string str)
+{
+  for (std::size_t pos = 0; (pos = str.find_first_of("\n\t\r\a\b\f\v\"\'\?", pos)); ++pos)
+  {
+    if (pos == std::string::npos)
+    {
+      break;
+    }
+
+    switch (str.at(pos))
+    {
+      case '\n':
+      {
+        str.replace(pos++, 1, "\\n");
+        break;
+      }
+      case '\t':
+      {
+        str.replace(pos++, 1, "\\t");
+        break;
+      }
+      case '\r':
+      {
+        str.replace(pos++, 1, "\\r");
+        break;
+      }
+      case '\a':
+      {
+        str.replace(pos++, 1, "\\a");
+        break;
+      }
+      case '\b':
+      {
+        str.replace(pos++, 1, "\\b");
+        break;
+      }
+      case '\f':
+      {
+        str.replace(pos++, 1, "\\f");
+        break;
+      }
+      case '\v':
+      {
+        str.replace(pos++, 1, "\\v");
+        break;
+      }
+      case '\?':
+      {
+        str.replace(pos++, 1, "\\?");
+        break;
+      }
+      case '\'':
+      {
+        str.replace(pos++, 1, "\\'");
+        break;
+      }
+      case '"':
+      {
+        str.replace(pos++, 1, "\\\"");
+        break;
+      }
+      default:
+      {
+        break;
+      }
+    }
+  }
+
+  return str;
+}
+
+std::string unescape(std::string str)
+{
+  for (std::size_t pos = 0; (pos = str.find("\\", pos)); ++pos)
+  {
+    if (pos == std::string::npos || pos + 1 == std::string::npos)
+    {
+      break;
+    }
+
+    switch (str.at(pos + 1))
+    {
+      case 'n':
+      {
+        str.replace(pos, 2, "\n");
+        break;
+      }
+      case 't':
+      {
+        str.replace(pos, 2, "\t");
+        break;
+      }
+      case 'r':
+      {
+        str.replace(pos, 2, "\r");
+        break;
+      }
+      case 'a':
+      {
+        str.replace(pos, 2, "\a");
+        break;
+      }
+      case 'b':
+      {
+        str.replace(pos, 2, "\b");
+        break;
+      }
+      case 'f':
+      {
+        str.replace(pos, 2, "\f");
+        break;
+      }
+      case 'v':
+      {
+        str.replace(pos, 2, "\v");
+        break;
+      }
+      case '?':
+      {
+        str.replace(pos, 2, "\?");
+        break;
+      }
+      case '\'':
+      {
+        str.replace(pos, 2, "'");
+        break;
+      }
+      case '"':
+      {
+        str.replace(pos, 2, "\"");
+        break;
+      }
+      default:
+      {
+        break;
+      }
+    }
+  }
+
+  return str;
+}
+
+std::size_t count(std::string const& str, std::string const& val)
+{
+  std::size_t pos {0};
+  std::size_t count {0};
+
+  for (;;)
+  {
+    pos = str.find(val, pos);
+
+    if (pos == std::string::npos)
+    {
+      break;
+    }
+
+    ++count;
+    ++pos;
+  }
+
+  return count;
 }
 
 std::size_t damerau_levenshtein(std::string const& lhs, std::string const& rhs,
