@@ -1,11 +1,67 @@
 # Peaclock
-A colourful binary clock for the terminal.
+A responsive and customizable clock for the terminal.
 
-![default](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/default.png)
-![binary](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/binary.png)
+[![peaclock](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/peaclock.png)](https://octobanana.com/software/peaclock/blob/assets/peaclock.mp4#file)
+
+Click the above image to view a video of __Peaclock__ in action.
+
+## Contents
+* [About](#about)
+  * [Features](#features)
+* [Usage](#usage)
+* [Binary Clock](#binary-clock)
+* [Terminal Compatibility](#terminal-compatibility)
+* [Pre-Build](#pre-build)
+  * [Dependencies](#dependencies)
+  * [Linked Libraries](#linked-libraries)
+  * [Included Libraries](#included-libraries)
+  * [Environment](#environment)
+  * [macOS](#macos)
+* [Build](#build)
+* [Install](#install)
+* [Configuration](#configuration)
+* [License](#license)
 
 ## About
-Peaclock is a customizable binary clock made for the terminal.
+__Peaclock__ is a responsive and customizable clock for the terminal.
+
+It can display either a digital or binary clock.
+The clock can be customized, such as changing the width,
+height, colour, padding, and margin. When in auto size mode,
+the clock becomes responsive, filling up the full size of the terminal.
+The clock can also be set to conform to a specific aspect ratio,
+allowing the clock to auto resize without becoming stretched.
+
+### Features
+* display a digital clock
+* display a binary clock
+* display a custom date string
+* set a specific locale
+* set a specific timezone
+* auto size the clock to fit the width and height of the terminal
+* auto size the clock to conform to a specific aspect ratio
+* load settings from a configuration file
+* save and load the command history
+* fuzzy search the command history
+* toggle seconds display
+* toggle 12 or 24 hour time format
+* use 4-bit, 8-bit, and 24-bit colours to personalize the clock
+* use the built-in command prompt or a selection of keybindings to adjust and customize the clock while the program is running
+
+## Usage
+View the usage and help output with the `--help` or `-h` flag,
+or [click here](https://raw.githubusercontent.com/octobanana/peaclock/master/help.txt) to view the help output as a plain text file.
+
+## Binary Clock
+The following is a short guide explaining how to read the binary clock.
+
+```
+  |   |   | < 8
+  | | | | | < 4
+| | | | | | < 2
+| | | | | | < 1
+H H M M S S < Time Digit
+```
 
 Each column represents a single digit.
 The first two columns are the two hour digits,
@@ -17,78 +73,61 @@ which makes it worth a value of 1.
 The next row up is worth 2, then 4, followed by 8.
 Adding up the __on__ bits gives the value of the digit.
 
-```
- |  |  | < 8
- | || || < 4
-|| || || < 2
-|| || || < 1
-HH:MM:SS
-```
-
-### Features
-* digital clock
-* binary clock
-* 12/24 hour time
-* customize with hex colour codes
-* set a custom unicode character for the binary clock graphic
-* compact or expanded mode
-* toggle visibility of digital and binary clocks
-* command prompt with a readline-like interface
-* configuration file
-
-## Usage
-View the usage and help output with the `--help` or `-h` flag.
-The help output also contains the documentation for the key bindings and commands for customization.
-
-## Config
-The default config locations are `${XDG_CONFIG_HOME}/peaclock/config` and `${HOME}/.peaclock/config`.
-A custom path can also be passed to override the default locations using the `--config` option.
-The config directory and file must be created by the user.
-If the file does not exist, the program continues as normal.
-
-The file, `config`, is a plain text file that can contain any of the commands listed in the __Commands__ section of the `--help` output.
-Each command must be on its own line.
-Lines that begin with the `#` character are treated as comments.
-
-An example config file would look like the following:
-
-```text
-# peaclock config
-
-set compact off
-set char -
-set hour 24
-set bold on
-set binary on
-set digital off
-set active #4feae7
-set inactive #2c323c
-```
-
 ## Terminal Compatibility
-The default colour output is chosen depending on the presence of the `COLORTERM` environment variable.
-Most modern terminal emulators that support true colour will automatically set this variable to either `truecolor` or `24bit`.
-If either of those values are found, peaclock will default to using 24-bit or true colour.
-If the variable is empty, or set to anything else, peaclock will default to using 4-bit colours.
-The default chosen is for the initial state, one can still set the colours to use another value.
-If the terminal doesn't support the value given, it may just end up showing as the colour white.
+This program uses raw terminal control sequences to manipulate the terminal,
+such as moving the cursor, styling the output text, and clearing the screen.
+Although some of the control sequences used may not work as intended on all terminals,
+they should work fine on any modern terminal emulator.
 
-## Build
-### Environment
-* Linux (supported)
-* BSD (supported)
-* macOS (supported)
+## Pre-Build
+This section describes what environments this program may run on,
+any prior requirements or dependencies needed,
+and any third party libraries used.
 
-### Requirements
-* C++17 compiler
-* CMake >= 3.8
+> #### Important
+> Any shell commands using relative paths are expected to be executed in the
+> root directory of this repository.
 
 ### Dependencies
-* none
+* __C++17__ compiler/library
+* __CMake__ >= 3.8
+* __ICU__ >= 62.1
 
-### Libraries:
-* [parg](https://github.com/octobanana/parg): for parsing CLI args, included as `./src/ob/parg.hh`
+### Linked Libraries
+* __stdc++fs__ (libstdc++fs) included in the C++17 Standard Library
+* __icuuc__ (libicuuc) part of the ICU library
+* __icui18n__ (libicui18n) part of the ICU library
 
+### Included Libraries
+* [__parg__](https://github.com/octobanana/parg):
+  for parsing CLI args, included as `./src/ob/parg.hh`
+
+### Environment
+* __Linux__ (supported)
+* __BSD__ (supported)
+* __macOS__ (supported)
+
+### macOS
+Using a new version of __gcc__ or __llvm__ is __required__, as the default
+__Apple llvm compiler__ does __not__ support C++17 Standard Library features such as `std::filesystem`.
+
+A new compiler can be installed through a third-party package manager such as __Brew__.
+Assuming you have __Brew__ already installed, the following commands should install
+the latest __gcc__.
+
+```
+brew install gcc
+brew link gcc
+```
+
+The following line will then need to be appended to the CMakeLists.txt file.
+Replace the placeholder `<path-to-g++>` with the canonical path to the new __g++__ compiler binary.
+
+```
+set (CMAKE_CXX_COMPILER <path-to-g++>)
+```
+
+## Build
 The following shell command will build the project in release mode:
 ```sh
 ./build.sh
@@ -101,6 +140,38 @@ The following shell command will install the project in release mode:
 ./install.sh
 ```
 To install in debug mode, run the script with the `--debug` flag.
+
+## Configuration
+Config Directory (DIR): `${HOME}/.peaclock`  
+History Directory: `DIR/history`  
+Config File: `DIR/config`  
+Command History File: `DIR/history/command`
+
+Use `--config=<file>` to override the default config file.  
+Use `--config-dir=<dir>` to override the default config directory.
+
+The config directory and config file must be created by the user.
+
+The config file in the config directory must be named `config`.
+It is a plain text file that can contain any of the
+commands listed in the __Commands__ section of the `--help` output.
+Each command must be on its own line. Lines that begin with the
+`#` character are treated as comments.
+
+If you want to permanently use a different config directory,
+such as `~/.config/peaclock`, add the following line to your shell profile:
+```sh
+alias peaclock="peaclock --config-dir ~/.config/peaclock"
+```
+
+The following shell commands will create the config directory
+in the default location and copy over the example config file:
+```sh
+mkdir -pv ~/.peaclock
+cp -uv ./config/default ~/.peaclock/config
+```
+
+Several config file examples can be found in the `./config` directory.
 
 ## License
 This project is licensed under the MIT License.
