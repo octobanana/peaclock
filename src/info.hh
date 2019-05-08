@@ -15,7 +15,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 
 inline void program_init(Parg& pg)
 {
-  pg.name("peaclock").version("0.2.0 (18.02.2019)");
+  pg.name("peaclock").version("0.3.0 (07.05.2019)");
   pg.description("A responsive and customizable clock for the terminal.");
 
   pg.usage("[--config-dir <dir>] [--config|-u <file>] [<file>] [--colour <on|off|auto>]");
