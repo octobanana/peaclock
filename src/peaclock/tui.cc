@@ -142,41 +142,88 @@ void Tui::load_hist_command(fs::path const& path)
   _readline.hist_load(path);
 }
 
-// bool Tui::mkconfig()
-// {
-//   if (_ctx.base_config.empty())
-//   {
-//     set_status(false, "empty config directory");
+bool Tui::mkconfig(std::string path, bool overwrite)
+{
+  if (path.front() == '~')
+  {
+    path.replace(0, 1, std::getenv("HOME"));
+  }
 
-//     return false;
-//   }
+  fs::path fpath {path};
 
-//   fs::path path {_ctx.base_config / fs::path("state") / fs::path(_fltrdr.content_id())};
+  if (fs::exists(fpath))
+  {
+    if (! fs::is_regular_file(fpath))
+    {
+      set_status(false, "error: '" + fpath.lexically_normal().string() + "' is not a regular file");
 
-//   std::ofstream file {path, std::ios::trunc};
+      return false;
+    }
 
-//   if (! file.is_open())
-//   {
-//     set_status(false, "could not open file");
+    if (! overwrite)
+    {
+      set_status(false, "error: file '" + fpath.lexically_normal().string() + "' already exists, use command 'mkconfig!' to overwrite");
 
-//     return false;
-//   }
+      return false;
+    }
+  }
 
-//   // timestamp
-//   std::time_t t = std::time(0);
-//   std::tm tm = *std::localtime(&t);
+  std::ofstream file {fpath};
 
-//   // dump current state to file
-//   file
-//   << "# peaclock config\n"
-//   << "# file: " << _ctx.file.path.string() << "\n"
-//   << "# date: " << std::put_time(&tm, "%FT%TZ\n") << "\n\n"
-//   << std::flush;
+  if (! file.is_open())
+  {
+    set_status(false, "error: could not open file '" + fpath.lexically_normal().string() + "'");
 
-//   set_status(true, "");
+    return false;
+  }
 
-//   return true;
-// }
+  // timestamp
+  std::time_t t = std::time(0);
+  std::tm tm = *std::localtime(&t);
+
+  // dump current state to file
+  file
+  << "# peaclock config\n"
+  << "# file: " << fpath.lexically_normal().string() << "\n"
+  << "# date: " << std::put_time(&tm, "%FT%TZ") << "\n\n"
+  << "mode " << Peaclock::Mode::str(_peaclock.cfg.mode) << "\n"
+  << "toggle " << Peaclock::Toggle::str(_peaclock.cfg.toggle) << "\n"
+  << "date '" << OB::String::escape(_peaclock.cfg.datefmt) << "'\n"
+  << "locale '" << _peaclock.cfg.locale << "'\n"
+  << "timezone '" << _peaclock.cfg.timezone << "'\n"
+  << "fill-colon '" << OB::String::escape(_peaclock.cfg.fill_colon) << "'\n"
+  << "fill-active '" << OB::String::escape(_peaclock.cfg.fill_active) << "'\n"
+  << "fill-inactive '" << OB::String::escape(_peaclock.cfg.fill_inactive) << "'\n"
+  << "rate-input " << _ctx.input_interval.str() << "\n"
+  << "rate-status " << _ctx.prompt.rate.str() << "\n"
+  << "rate-refresh " << _ctx.refresh_rate.str() << "\n"
+  << "block " << _peaclock.cfg.x_block.str() << " " << _peaclock.cfg.y_block.str() << "\n"
+  << "padding " << _peaclock.cfg.x_space.str() << " " << _peaclock.cfg.y_space.str() << "\n"
+  << "margin " << _peaclock.cfg.x_border.str() << " " << _peaclock.cfg.y_border.str() << "\n"
+  << "ratio " << _peaclock.cfg.x_ratio.str() << " " << _peaclock.cfg.y_ratio.str() << "\n"
+  << "set date " << btos(_peaclock.cfg.date) << "\n"
+  << "set seconds " << btos(_peaclock.cfg.seconds) << "\n"
+  << "set hour-24 " << btos(_peaclock.cfg.hour_24) << "\n"
+  << "set auto-size " << btos(_peaclock.cfg.auto_size) << "\n"
+  << "set auto-ratio " << btos(_peaclock.cfg.auto_ratio) << "\n"
+  << "style active-fg " << _peaclock.cfg.style.active_fg.key() << "\n"
+  << "style active-bg " << _peaclock.cfg.style.active_bg.key() << "\n"
+  << "style inactive-fg " << _peaclock.cfg.style.inactive_fg.key() << "\n"
+  << "style inactive-bg " << _peaclock.cfg.style.inactive_bg.key() << "\n"
+  << "style colon-fg " << _peaclock.cfg.style.colon_fg.key() << "\n"
+  << "style colon-bg " << _peaclock.cfg.style.colon_bg.key() << "\n"
+  << "style date " << _peaclock.cfg.style.date.key() << "\n"
+  << "style text " << _ctx.style.text.key() << "\n"
+  << "style background " << _ctx.style.background.key() << "\n"
+  << "style prompt " << _ctx.style.prompt.key() << "\n"
+  << "style success " << _ctx.style.success.key() << "\n"
+  << "style error " << _ctx.style.error.key() << "\n"
+  << std::flush;
+
+  set_status(true, "config saved to '" + fpath.lexically_normal().string() + "'");
+
+  return true;
+}
 
 void Tui::run()
 {
@@ -1263,6 +1310,18 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     << aec::cursor_home
     << aec::mouse_enable
     << std::flush;
+  }
+
+  else if (keys.at(0) == "mkconfig" || keys.at(0) == "mkconfig!")
+  {
+    if (keys.size() == 2)
+    {
+      mkconfig(keys.at(1), keys.at(0).back() == '!');
+    }
+    else
+    {
+      return std::make_pair(false, "error: expected output file path");
+    }
   }
 
   else if (keys.at(0) == "rate-input" && (match_opt = OB::String::match(input,

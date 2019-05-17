@@ -80,6 +80,12 @@ inline void program_init(Parg& pg)
     {"help <search>", {
       {"", "search or view the help output"},
     }},
+    {"mkconfig <file>", {
+      {"", "create 'file' and write the current config settings to it"},
+    }},
+    {"mkconfig! <file>", {
+      {"", "overwrite or create 'file' and write the current config settings to it"},
+    }},
     {"mode <value>", {
       {"date",
         "display only the date"},

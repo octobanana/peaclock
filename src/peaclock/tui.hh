@@ -61,6 +61,8 @@ private:
 
   void set_status(bool success, std::string const& msg);
 
+  bool mkconfig(std::string path, bool overwrite = false);
+
   Parg const& _pg;
   bool const _colorterm;
   OB::Term::Mode _term_mode;
