@@ -77,6 +77,9 @@ inline void program_init(Parg& pg)
     {"exit", {
       {"", "quit the program"},
     }},
+    {"help <search>", {
+      {"", "search or view the help output"},
+    }},
     {"mode <value>", {
       {"date",
         "display only the date"},

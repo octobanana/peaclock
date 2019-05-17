@@ -1237,6 +1237,34 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     return {};
   }
 
+  else if (keys.at(0) == "h" || keys.at(0) == "help")
+  {
+    std::cout
+    << aec::mouse_disable
+    << aec::nl
+    << aec::screen_pop
+    << aec::cursor_show
+    << std::flush;
+
+    _term_mode.set_cooked();
+
+    std::system(("$(which less) -ir" +
+      (keys.size() > 1 ? " '+/" + keys.at(1) +
+      (keys.size() > 2 ? " " + keys.at(2) : "") + "'" : "") +
+      " <<'EOF'\n" + _pg.help() + "EOF").c_str());
+
+    _term_mode.set_raw();
+
+    std::cout
+    << aec::cursor_hide
+    << aec::screen_push
+    << aec::cursor_hide
+    << aec::screen_clear
+    << aec::cursor_home
+    << aec::mouse_enable
+    << std::flush;
+  }
+
   else if (keys.at(0) == "rate-input" && (match_opt = OB::String::match(input,
     std::regex("^rate-input(?:\\s+([0-9]+))?$"))))
   {
