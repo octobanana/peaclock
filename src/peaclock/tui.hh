@@ -3,6 +3,9 @@
 
 #include "peaclock/peaclock.hh"
 
+#include "ob/parg.hh"
+using Parg = OB::Parg;
+
 #include "ob/num.hh"
 #include "ob/color.hh"
 #include "ob/readline.hh"
@@ -29,7 +32,7 @@ class Tui
 {
 public:
 
-  Tui();
+  Tui(Parg const& parg);
 
   Tui& init(fs::path const& path = {});
   void base_config(fs::path const& path);
@@ -58,8 +61,9 @@ private:
 
   void set_status(bool success, std::string const& msg);
 
-  OB::Term::Mode _term_mode;
+  Parg const& _pg;
   bool const _colorterm;
+  OB::Term::Mode _term_mode;
   OB::Readline _readline;
   Peaclock _peaclock;
 

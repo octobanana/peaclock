@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
   try
   {
     // init
-    Tui tui;
+    Tui tui {pg};
 
     if (! OB::Term::is_term(STDOUT_FILENO))
     {

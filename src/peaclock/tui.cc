@@ -37,7 +37,8 @@ using std::string_literals::operator""s;
 // bool to string
 #define btos(x) ("off\0on"+4*!!(x))
 
-Tui::Tui() :
+Tui::Tui(Parg const& parg) :
+  _pg {parg},
   _colorterm {OB::Term::is_colorterm()}
 {
   _ctx.prompt.timeout = _ctx.prompt.rate.get() / _ctx.refresh_rate.get();
