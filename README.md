@@ -50,7 +50,7 @@ allowing the clock to auto resize without becoming stretched.
 
 ## Usage
 View the usage and help output with the `--help` or `-h` flag,
-or [click here](https://raw.githubusercontent.com/octobanana/peaclock/master/help.txt) to view the help output as a plain text file.
+or `./help.txt` to view the help output as a plain text file.
 
 ## Binary Clock
 The following is a short guide explaining how to read the binary clock.
