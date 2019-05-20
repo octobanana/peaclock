@@ -38,14 +38,14 @@ void Peaclock::init_ctx(std::size_t const width, std::size_t const height)
   cfg.style.inactive_bg.step();
   cfg.style.colon_bg.step();
 
-  if (cfg.mode != Mode::date)
+  if (cfg.view != View::date)
   {
     // set the buffer to a template
-    if (cfg.mode == Mode::digital)
+    if (cfg.view == View::digital)
     {
       _ctx.buffer = cfg.seconds ? _clock_digital_seconds : _clock_digital;
     }
-    else if (cfg.mode == Mode::binary)
+    else if (cfg.view == View::binary)
     {
       _ctx.buffer = cfg.seconds ? _clock_binary_seconds : _clock_binary;
     }
@@ -104,13 +104,13 @@ void Peaclock::draw_title(std::ostringstream& buf)
 
 void Peaclock::draw_clock(std::ostringstream& buf)
 {
-  if (cfg.mode != Mode::date)
+  if (cfg.view != View::date)
   {
-    if (cfg.mode == Mode::digital)
+    if (cfg.view == View::digital)
     {
       set_clock_digital();
     }
-    else if (cfg.mode == Mode::binary)
+    else if (cfg.view == View::binary)
     {
       set_clock_binary();
     }
@@ -232,7 +232,7 @@ void Peaclock::draw_date(std::ostringstream& buf)
   if (cfg.date && cfg.datefmt.size())
   {
     _ctx.date.xy_max(_ctx.width + 1, _ctx.height + 1);
-    _ctx.date.xy(0, (cfg.mode != Mode::date ? (_ctx.y += 1 - cfg.y_space.get(), _ctx.y) : _ctx.height / 2));
+    _ctx.date.xy(0, (cfg.view != View::date ? (_ctx.y += 1 - cfg.y_space.get(), _ctx.y) : _ctx.height / 2));
     _ctx.date.wh(_ctx.width, cfg.height_datefmt);
     _ctx.date.color_fg(cfg.style.date);
     _ctx.date.color_bg(cfg.style.background);
@@ -532,28 +532,48 @@ void Peaclock::set_clock_value()
   std::time_t time_raw {std::time(nullptr)};
   std::tm time_now {*std::localtime(&time_raw)};
 
-  // set 12 or 24 hour time
-  int hour {time_now.tm_hour};
-  if (! cfg.hour_24)
+  int hour {0};
+  int min {0};
+  int sec {0};
+
+  if (timer || cfg.mode == Mode::timer)
   {
-    if (hour > 12)
+    std::tie(hour, min, sec) = timer.diff(cfg.timer_seconds);
+
+    if (timer && hour == 0 && min == 0 && sec == 0)
     {
-      hour -= 12;
-    }
-    else if (hour == 0)
-    {
-      hour = 12;
+      timer.stop();
+      cfg.timer_notify = true;
     }
   }
 
-  // set hour
+  if (cfg.mode == Mode::stopwatch)
+  {
+    std::tie(hour, min, sec) = stopwatch.hms();
+  }
+
+  else if (cfg.mode == Mode::clock)
+  {
+    hour = time_now.tm_hour;
+    if (! cfg.hour_24)
+    {
+      if (hour > 12)
+      {
+        hour -= 12;
+      }
+      else if (hour == 0)
+      {
+        hour = 12;
+      }
+    }
+
+    min = time_now.tm_min;
+    sec = time_now.tm_sec;
+  }
+
   extract_digits(hour, _ctx.value.at(Position::H), _ctx.value.at(Position::h));
-
-  // set min
-  extract_digits(time_now.tm_min, _ctx.value.at(Position::M), _ctx.value.at(Position::m));
-
-  // set sec
-  extract_digits(time_now.tm_sec, _ctx.value.at(Position::S), _ctx.value.at(Position::s));
+  extract_digits(min, _ctx.value.at(Position::M), _ctx.value.at(Position::m));
+  extract_digits(sec, _ctx.value.at(Position::S), _ctx.value.at(Position::s));
 
   // manually set time for asset screenshots
   // _ctx.value.at(0) = 0;

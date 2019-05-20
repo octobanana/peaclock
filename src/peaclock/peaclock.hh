@@ -1,11 +1,13 @@
 #ifndef PEACLOCK_HH
 #define PEACLOCK_HH
 
+
 #include "ob/rect.hh"
 using Rect = OB::Rect;
 
 #include "ob/num.hh"
 #include "ob/color.hh"
+#include "ob/timer.hh"
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
@@ -23,6 +25,73 @@ public:
   void render(std::size_t const width, std::size_t const height, std::ostringstream& buf);
 
   struct Mode
+  {
+    enum Type
+    {
+      clock = 0,
+      timer,
+      stopwatch,
+    };
+
+    static Type enm(std::string const& type)
+    {
+      if (type.empty())
+      {
+        return clock;
+      }
+
+      switch (type.at(0))
+      {
+        case 'c':
+        {
+          return clock;
+        }
+
+        case 's':
+        {
+          return stopwatch;
+        }
+
+        case 't':
+        {
+          return timer;
+        }
+
+        default:
+        {
+          return clock;
+        }
+      }
+    }
+
+    static std::string str(Type type)
+    {
+      switch (type)
+      {
+        case clock:
+        {
+          return "clock";
+        }
+
+        case stopwatch:
+        {
+          return "stopwatch";
+        }
+
+        case timer:
+        {
+          return "timer";
+        }
+
+        default:
+        {
+          return {};
+        }
+      }
+    }
+  };
+
+  struct View
   {
     enum Type
     {
@@ -268,8 +337,13 @@ public:
 
   struct Config
   {
-    Mode::Type mode {Mode::digital};
+    Mode::Type mode {Mode::clock};
+    View::Type view {View::digital};
     Toggle::Type toggle {Toggle::active_bg};
+
+    bool timer_notify {false};
+    long int timer_seconds {600};
+    std::string timer_exec;
 
     bool hour_24 {true};
     bool seconds {false};
@@ -322,6 +396,9 @@ public:
   void cfg_datefmt(std::string const& str);
   bool cfg_locale(std::string const& lc);
   bool cfg_timezone(std::string const& tz);
+
+  OB::Timer timer;
+  OB::Timer stopwatch;
 
 private:
 

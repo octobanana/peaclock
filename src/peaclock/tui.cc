@@ -187,7 +187,11 @@ bool Tui::mkconfig(std::string path, bool overwrite)
   << "# file: " << fpath.lexically_normal().string() << "\n"
   << "# date: " << std::put_time(&tm, "%FT%TZ") << "\n\n"
   << "mode " << Peaclock::Mode::str(_peaclock.cfg.mode) << "\n"
+  << "view " << Peaclock::View::str(_peaclock.cfg.view) << "\n"
   << "toggle " << Peaclock::Toggle::str(_peaclock.cfg.toggle) << "\n"
+  << "stopwatch start\n"
+  << "timer " << OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds) << "\n"
+  << "timer-exec '" << OB::String::escape(_peaclock.cfg.timer_exec) << "'\n"
   << "date '" << OB::String::escape(_peaclock.cfg.datefmt) << "'\n"
   << "locale '" << _peaclock.cfg.locale << "'\n"
   << "timezone '" << _peaclock.cfg.timezone << "'\n"
@@ -359,6 +363,21 @@ void Tui::draw_content()
 {
   _ctx.buf
   << aec::cursor_save;
+
+  // timer
+  if (! _peaclock.timer && _peaclock.cfg.timer_notify)
+  {
+    _peaclock.cfg.timer_notify = false;
+
+    if (! _peaclock.cfg.timer_exec.empty())
+    {
+      std::thread notify {[cmd = _peaclock.cfg.timer_exec]() {
+        std::system(cmd.c_str());
+      }};
+
+      notify.detach();
+    }
+  }
 
   // render new content
   _peaclock.render(_ctx.width, _ctx.height, _ctx.buf);
@@ -1201,7 +1220,7 @@ void Tui::get_input()
 
       case 'w':
       {
-        _peaclock.cfg.mode = Peaclock::Mode::date;
+        _peaclock.cfg.mode = Peaclock::Mode::clock;
         set_status(true, "mode " + Peaclock::Mode::str(_peaclock.cfg.mode));
 
         break;
@@ -1209,7 +1228,7 @@ void Tui::get_input()
 
       case 'e':
       {
-        _peaclock.cfg.mode = Peaclock::Mode::digital;
+        _peaclock.cfg.mode = Peaclock::Mode::timer;
         set_status(true, "mode " + Peaclock::Mode::str(_peaclock.cfg.mode));
 
         break;
@@ -1217,16 +1236,109 @@ void Tui::get_input()
 
       case 'r':
       {
-        _peaclock.cfg.mode = Peaclock::Mode::binary;
+        _peaclock.cfg.mode = Peaclock::Mode::stopwatch;
         set_status(true, "mode " + Peaclock::Mode::str(_peaclock.cfg.mode));
 
         break;
       }
 
-      case 't':
+      case 'W':
       {
-        _peaclock.cfg.mode = Peaclock::Mode::icon;
-        set_status(true, "mode " + Peaclock::Mode::str(_peaclock.cfg.mode));
+        _peaclock.cfg.date = true;
+        _peaclock.cfg.view = Peaclock::View::date;
+        set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+
+        break;
+      }
+
+      case 'E':
+      {
+        _peaclock.cfg.view = Peaclock::View::digital;
+        set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+
+        break;
+      }
+
+      case 'R':
+      {
+        _peaclock.cfg.view = Peaclock::View::binary;
+        set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+
+        break;
+      }
+
+      case 'T':
+      {
+        _peaclock.cfg.view = Peaclock::View::icon;
+        set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+
+        break;
+      }
+
+      case ' ':
+      {
+        switch (_peaclock.cfg.mode)
+        {
+          case Peaclock::Mode::timer:
+          {
+            if (_peaclock.timer.seconds() >= _peaclock.cfg.timer_seconds)
+            {
+              _peaclock.timer.reset();
+              _peaclock.cfg.timer_notify = false;
+              set_status(true, "timer clear");
+            }
+            else
+            {
+              _peaclock.timer.toggle();
+              set_status(true, "timer "s + (_peaclock.timer ? "start" : "stop"));
+            }
+
+            break;
+          }
+
+          case Peaclock::Mode::stopwatch:
+          {
+            _peaclock.stopwatch.toggle();
+            set_status(true, "stopwatch "s + (_peaclock.stopwatch ? "start" : "stop"));
+
+            break;
+          }
+
+          default:
+          {
+            break;
+          }
+        }
+
+        break;
+      }
+
+      case OB::Term::Key::backspace:
+      {
+        switch (_peaclock.cfg.mode)
+        {
+          case Peaclock::Mode::timer:
+          {
+            _peaclock.timer.reset();
+            _peaclock.cfg.timer_notify = false;
+            set_status(true, "timer clear");
+
+            break;
+          }
+
+          case Peaclock::Mode::stopwatch:
+          {
+            _peaclock.stopwatch.reset();
+            set_status(true, "stopwatch clear");
+
+            break;
+          }
+
+          default:
+          {
+            break;
+          }
+        }
 
         break;
       }
@@ -1310,6 +1422,94 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     << aec::cursor_home
     << aec::mouse_enable
     << std::flush;
+  }
+
+  else if (keys.at(0) == "timer" && (match_opt = OB::String::match(input,
+    std::regex("^timer(?:\\s+(clear|start|stop|(?:(?:\\d+Y)?:?(?:\\d+M)?:?(?:\\d+W)?:?(?:\\d+D)?:?(?:\\d+h)?:?(?:\\d+m)?:?(?:\\d+s)?)))?$"))))
+  {
+    auto const match = OB::String::trim(match_opt.value().at(1));
+
+    if (match.empty())
+    {
+      return std::make_pair(true, "timer " + OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds));
+      // return std::make_pair(true, "timer " + OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds - _peaclock.timer.seconds()));
+    }
+
+    if (match == "clear")
+    {
+      _peaclock.timer.reset();
+      _peaclock.cfg.timer_notify = false;
+    }
+    else if (match == "start")
+    {
+      if (_peaclock.timer.seconds() >= _peaclock.cfg.timer_seconds)
+      {
+        _peaclock.timer.reset();
+        _peaclock.cfg.timer_notify = false;
+      }
+
+      _peaclock.timer.start();
+    }
+    else if (match == "stop")
+    {
+      _peaclock.timer.stop();
+    }
+    else
+    {
+      _peaclock.timer.reset();
+      _peaclock.cfg.timer_notify = false;
+      _peaclock.cfg.timer_seconds = OB::Timer::str_to_sec(match);
+    }
+  }
+
+  else if (keys.at(0) == "stopwatch" && (match_opt = OB::String::match(input,
+    std::regex("^stopwatch(?:\\s+(clear|start|stop|(?:(?:\\d+Y)?:?(?:\\d+M)?:?(?:\\d+W)?:?(?:\\d+D)?:?(?:\\d+h)?:?(?:\\d+m)?:?(?:\\d+s)?)))?$"))))
+  {
+    auto const match = OB::String::trim(match_opt.value().at(1));
+
+    if (match.empty())
+    {
+      return std::make_pair(true, "stopwatch " + _peaclock.stopwatch.str());
+    }
+
+    if (match == "clear")
+    {
+      _peaclock.stopwatch.reset();
+    }
+    else if (match == "start")
+    {
+      _peaclock.stopwatch.start();
+    }
+    else if (match == "stop")
+    {
+      _peaclock.stopwatch.stop();
+    }
+    else
+    {
+      _peaclock.stopwatch.str(match);
+    }
+  }
+
+  else if (keys.at(0) == "timer-exec" && (match_opt = OB::String::match(input,
+    std::regex("^timer-exec(?:\\s+(?:(" + _ctx.rx.str + ")))?$"))))
+  {
+    auto const match = match_opt.value().at(1);
+
+    if (match.empty())
+    {
+      return std::make_pair(true, "timer-exec '" + OB::String::escape(_peaclock.cfg.timer_exec) + "'");
+    }
+    else
+    {
+      if (match.size() == 2)
+      {
+        _peaclock.cfg.timer_exec = "";
+      }
+      else
+      {
+        _peaclock.cfg.timer_exec = OB::String::unescape(match.substr(1, match.size() - 2));
+      }
+    }
   }
 
   else if (keys.at(0) == "mkconfig" || keys.at(0) == "mkconfig!")
@@ -1530,7 +1730,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
   }
 
   else if (keys.at(0) == "mode" && (match_opt = OB::String::match(input,
-    std::regex("^mode(?:\\s+(date|digital|binary|icon))?$"))))
+    std::regex("^mode(?:\\s+(clock|timer|stopwatch))?$"))))
   {
     auto const match = match_opt.value().at(1);
 
@@ -1541,6 +1741,21 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     else
     {
       _peaclock.cfg.mode = Peaclock::Mode::enm(match);
+    }
+  }
+
+  else if (keys.at(0) == "view" && (match_opt = OB::String::match(input,
+    std::regex("^view(?:\\s+(date|digital|binary|icon))?$"))))
+  {
+    auto const match = match_opt.value().at(1);
+
+    if (match.empty())
+    {
+      return std::make_pair(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+    }
+    else
+    {
+      _peaclock.cfg.view = Peaclock::View::enm(match);
     }
   }
 

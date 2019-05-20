@@ -14,27 +14,33 @@
 # general
 # -----------------------------------------------------------------------------
 
-# set the x y block size, the width and height of an individual block composing the clock
+# set the x y block size, the width and height of an individual block composing
+# the clock
 block 2 1
 # block-x 2
 # block-y 1
 
-# set the x y padding size, the width and height of the space between each individual block composing the clock
+# set the x y padding size, the width and height of the space between each
+# individual block composing the clock
 padding 0 0
 # padding-x 2
 # padding-y 1
 
-# set the x y margin size, the space around the outside of the clock from the edge of the terminal
+# set the x y margin size, the space around the outside of the clock from the
+# edge of the terminal
 margin 0 0
 # margin-x 0
 # margin-y 0
 
-# set the x y ratio size, auto adjust the clock to conform to a specific aspect ratio, keep in mind that a square ratio would be '2 1' due to a terminal character cell having a height around twice the size of its width
+# set the x y ratio size, auto adjust the clock to conform to a specific
+# aspect ratio, keep in mind that a square ratio would be '2 1' due to a
+# terminal character cell having a height around twice the size of its width
 ratio 2 1
 # ratio-x 2
 # ratio-y 1
 
-# set the string value used to fill the active, inactive, and colon blocks of the clock, an empty string clears the value
+# set the string value used to fill the active, inactive, and colon blocks of
+# the clock, an empty string clears the value
 fill ''
 # fill-active ''
 # fill-inactive ''
@@ -43,22 +49,40 @@ fill ''
 # set the locale, for example 'en_CA.utf8', an empty string clears the value
 locale ''
 
-# set the timezone, for example 'America/Vancouver', an empty string clears the value
+# set the timezone, for example 'America/Vancouver', an empty string clears the
+# value
 timezone ''
 
 # set the date format string, an empty string clears the value
 date '%a %b %d'
 
-# set the clock type
+# set the mode type
+# select one of:
+# clock, timer, or stopwatch
+mode clock
+
+# set the view type
 # select one of:
 # date, digital, binary, or icon
-mode digital
+view digital
 
 # set the value to adjust with the hjkl;' keys
 # select one of:
 # block, padding, margin, ratio, active-fg, inactive-fg, colon-fg,
 # active-bg, inactive-bg, colon-bg, background, or date
 toggle active-bg
+
+# set the stopwatch to start
+# clear, stop, start, 00h:00m:00s
+stopwatch start
+
+# set the timers initial value
+# clear, stop, start, 00h:00m:00s
+timer 10m:0s
+
+# set the string value to be executed by a shell upon timer completion,
+# an empty string clears the value
+timer-exec 'notify-send -a peaclock "timer complete"'
 
 # set the duration in milliseconds between reading user input
 rate-input 50
@@ -87,7 +111,8 @@ set date on
 # auto size the clock to fill the screen, overrides the current x y block size
 set auto-size on
 
-# auto size the clock to use the aspect ratio set by the command 'ratio', overrides the current x y block size and auto-size
+# auto size the clock to use the aspect ratio set by the command 'ratio',
+# overrides the current x y block size and auto-size
 set auto-ratio on
 
 # -----------------------------------------------------------------------------
@@ -112,13 +137,16 @@ set auto-ratio on
 # white [bright]
 # -----------------------------------------------------------------------------
 
-# set the style of the text set by the command 'fill' used to draw active blocks in the clock
+# set the style of the text set by the command 'fill' used to draw active
+# blocks in the clock
 style active-fg clear
 
-# set the style of the text set by the command 'fill' used to draw inactive blocks in the clock
+# set the style of the text set by the command 'fill' used to draw inactive
+# blocks in the clock
 style inactive-fg clear
 
-# set the style of the text set by the command 'fill-colon' used to draw colon blocks in the clock
+# set the style of the text set by the command 'fill-colon' used to draw colon
+# blocks in the clock
 style colon-fg clear
 
 # set the style of the background used to draw active blocks in the clock

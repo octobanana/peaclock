@@ -50,6 +50,7 @@ target_include_directories(
 
 target_link_libraries (
   ${TARGET}
+  pthread
   stdc++fs
   icuuc
   icui18n
