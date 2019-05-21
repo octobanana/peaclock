@@ -16,7 +16,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 inline void program_init(Parg& pg)
 {
   pg.name("peaclock").version("0.3.1 (17.05.2019)");
-  pg.description("A responsive and customizable clock for the terminal.");
+  pg.description("A responsive and customizable clock, timer, and stopwatch for the terminal.");
 
   pg.usage("[--config-dir <dir>] [--config|-u <file>] [<file>] [--colour <on|off|auto>]");
   pg.usage("[--help|-h] [--colour <on|off|auto>]");
@@ -27,6 +27,8 @@ inline void program_init(Parg& pg)
     {"q, Q, <ctrl-c>", "quit the program"},
     {":", "enter the command prompt"},
     {"<esc>", "clear prompt status message"},
+    {"<space>", "start/stop timer or stopwatch"},
+    {"<backspace>", "clear timer or stopwatch"},
     {"w", "mode clock"},
     {"e", "mode timer"},
     {"r", "mode stopwatch"},
@@ -59,8 +61,6 @@ inline void program_init(Parg& pg)
     {";", "decrease luminosity"},
     {"'", "increase luminosity"},
     {"/", "clear toggled style"},
-    {"<space>", "start/stop timer or stopwatch"},
-    {"<backspace>", "clear timer or stopwatch"},
   }});
 
   pg.info({"Prompt Bindings", {
