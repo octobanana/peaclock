@@ -58,6 +58,7 @@ inline void program_init(Parg& pg)
     {"l", "increase x or hue value"},
     {";", "decrease luminosity"},
     {"'", "increase luminosity"},
+    {"/", "clear toggled style"},
   }});
 
   pg.info({"Prompt Bindings", {

@@ -1122,6 +1122,84 @@ void Tui::get_input()
         break;
       }
 
+      case '/':
+      {
+        switch (_peaclock.cfg.toggle)
+        {
+          case Peaclock::Toggle::active_fg:
+          {
+            _peaclock.cfg.style.active_fg.key("clear");
+            set_status(true, "active-fg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::active_bg:
+          {
+            _peaclock.cfg.style.active_bg.key("clear");
+            set_status(true, "active-bg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::inactive_fg:
+          {
+            _peaclock.cfg.style.inactive_fg.key("clear");
+            set_status(true, "inactive-fg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::inactive_bg:
+          {
+            _peaclock.cfg.style.inactive_bg.key("clear");
+            set_status(true, "inactive-bg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::colon_fg:
+          {
+            _peaclock.cfg.style.colon_fg.key("clear");
+            set_status(true, "colon-fg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::colon_bg:
+          {
+            _peaclock.cfg.style.colon_bg.key("clear");
+            set_status(true, "colon-bg clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::date:
+          {
+            _peaclock.cfg.style.date.key("clear");
+            set_status(true, "date clear");
+
+            break;
+          }
+
+          case Peaclock::Toggle::background:
+          {
+            _ctx.style.background.key("clear");
+            _peaclock.cfg.style.background.key("clear");
+            set_status(true, "background clear");
+
+            break;
+          }
+
+          default:
+          {
+            break;
+          }
+        }
+
+        break;
+      }
+
       case 'p':
       {
         _peaclock.cfg.toggle = Peaclock::Toggle::block;
