@@ -250,6 +250,7 @@ void Peaclock::draw_ascii(std::ostringstream& buf)
   _ctx.text.text(std::to_string(_ctx.value.at(0)) + std::to_string(_ctx.value.at(1)) + ":" + std::to_string(_ctx.value.at(2)) + std::to_string(_ctx.value.at(3)) +
     (cfg.seconds ? ":" + std::to_string(_ctx.value.at(4)) + std::to_string(_ctx.value.at(5)) : ""));
   _ctx.text.align(Rect::Align::center, Rect::Align::center);
+  _ctx.text.highlight({{":", cfg.style.colon_fg}});
 
   buf << _ctx.text;
 }
@@ -279,6 +280,7 @@ void Peaclock::draw_date(std::ostringstream& buf)
     _ctx.text.color_bg(cfg.style.background);
     _ctx.text.text(_ctx.datefmt);
     _ctx.text.align(Rect::Align::center, Rect::Align::top);
+    _ctx.text.highlight({{":", cfg.style.colon_fg}});
 
     buf << _ctx.text;
   }
