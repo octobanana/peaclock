@@ -38,7 +38,7 @@ void Peaclock::init_ctx(std::size_t const width, std::size_t const height)
   cfg.style.inactive_bg.step();
   cfg.style.colon_bg.step();
 
-  if (cfg.view != View::date)
+  if (cfg.view != View::date && cfg.view != View::ascii)
   {
     // set the buffer to a template
     if (cfg.view == View::digital)
@@ -74,37 +74,45 @@ void Peaclock::init_ctx(std::size_t const width, std::size_t const height)
   }
 }
 
-void Peaclock::draw_background(std::size_t const width, std::size_t const height, std::ostringstream& buf)
-{
-  _ctx.background.xy_max(_ctx.width + 1, _ctx.height + 1);
-  _ctx.background.xy(0, 0);
-  _ctx.background.wh(_ctx.width, _ctx.height);
-  _ctx.background.color_bg(cfg.style.background);
+// void Peaclock::draw_background(std::size_t const width, std::size_t const height, std::ostringstream& buf)
+// {
+//   _ctx.background.xy_max(_ctx.width + 1, _ctx.height + 1);
+//   _ctx.background.xy(0, 0);
+//   _ctx.background.wh(_ctx.width, _ctx.height);
+//   _ctx.background.color_bg(cfg.style.background);
 
-  buf << _ctx.background;
-}
+//   buf << _ctx.background;
+// }
 
-void Peaclock::draw_title(std::ostringstream& buf)
-{
-  if (cfg.title && cfg.titlefmt.size())
-  {
-    _ctx.title.xy_max(_ctx.width + 1, _ctx.height + 1);
-    _ctx.title.xy(0, _ctx.y);
-    _ctx.title.wh(_ctx.width, cfg.height_titlefmt);
-    _ctx.title.color_fg(cfg.style.title);
-    _ctx.title.color_bg(cfg.style.background);
-    _ctx.title.text(cfg.titlefmt);
-    _ctx.title.align(Rect::Align::center, Rect::Align::top);
+// void Peaclock::draw_title(std::ostringstream& buf)
+// {
+//   if (cfg.title && cfg.titlefmt.size())
+//   {
+//     _ctx.text.xy_max(_ctx.width + 1, _ctx.height + 1);
+//     _ctx.text.xy(0, _ctx.y);
+//     _ctx.text.wh(_ctx.width, cfg.height_titlefmt);
+//     _ctx.text.color_fg(cfg.style.title);
+//     _ctx.text.color_bg(cfg.style.background);
+//     _ctx.text.text(cfg.titlefmt);
+//     _ctx.text.align(Rect::Align::center, Rect::Align::top);
 
-    buf << _ctx.title;
+//     buf << _ctx.text;
 
-    _ctx.y += 1 + cfg.height_titlefmt;
-  }
-}
+//     _ctx.y += 1 + cfg.height_titlefmt;
+//   }
+// }
 
 void Peaclock::draw_clock(std::ostringstream& buf)
 {
-  if (cfg.view != View::date)
+  if (cfg.view == View::date)
+  {
+    return;
+  }
+  else if (cfg.view == View::ascii)
+  {
+    draw_ascii(buf);
+  }
+  else // if (cfg.view == View::clock)
   {
     if (cfg.view == View::digital)
     {
@@ -227,19 +235,52 @@ void Peaclock::draw_clock(std::ostringstream& buf)
   }
 }
 
+void Peaclock::draw_ascii(std::ostringstream& buf)
+{
+  std::size_t const y = ([&]() {
+    return (_ctx.height / 2) - ((1 + (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + 1 : 0)) / 2);
+  })();
+  _ctx.y += y;
+
+  _ctx.text.xy_max(_ctx.width + 1, _ctx.height + 1);
+  _ctx.text.xy(0, y);
+  _ctx.text.wh(_ctx.width, 1);
+  _ctx.text.color_fg(cfg.style.active_fg);
+  _ctx.text.color_bg(cfg.style.background);
+  _ctx.text.text(std::to_string(_ctx.value.at(0)) + std::to_string(_ctx.value.at(1)) + ":" + std::to_string(_ctx.value.at(2)) + std::to_string(_ctx.value.at(3)) +
+    (cfg.seconds ? ":" + std::to_string(_ctx.value.at(4)) + std::to_string(_ctx.value.at(5)) : ""));
+  _ctx.text.align(Rect::Align::center, Rect::Align::center);
+
+  buf << _ctx.text;
+}
+
 void Peaclock::draw_date(std::ostringstream& buf)
 {
   if (cfg.date && cfg.datefmt.size())
   {
-    _ctx.date.xy_max(_ctx.width + 1, _ctx.height + 1);
-    _ctx.date.xy(0, (cfg.view != View::date ? (_ctx.y += 1 - cfg.y_space.get(), _ctx.y) : _ctx.height / 2));
-    _ctx.date.wh(_ctx.width, cfg.height_datefmt);
-    _ctx.date.color_fg(cfg.style.date);
-    _ctx.date.color_bg(cfg.style.background);
-    _ctx.date.text(_ctx.datefmt);
-    _ctx.date.align(Rect::Align::center, Rect::Align::top);
+    std::size_t const y = ([&]() {
+      if (cfg.view == View::date)
+      {
+        return _ctx.height / 2;
+      }
 
-    buf << _ctx.date;
+      if (cfg.view == View::ascii)
+      {
+        return _ctx.y + 2;
+      }
+
+      return _ctx.y + 1 - cfg.y_space.get();
+    })();
+
+    _ctx.text.xy_max(_ctx.width + 1, _ctx.height + 1);
+    _ctx.text.xy(0, y);
+    _ctx.text.wh(_ctx.width, cfg.height_datefmt);
+    _ctx.text.color_fg(cfg.style.date);
+    _ctx.text.color_bg(cfg.style.background);
+    _ctx.text.text(_ctx.datefmt);
+    _ctx.text.align(Rect::Align::center, Rect::Align::top);
+
+    buf << _ctx.text;
   }
 }
 
@@ -341,7 +382,7 @@ void Peaclock::calc_xy_block()
   }
 
   if (auto const val = (_ctx.height - (cfg.y_space.get() * _ctx.y_spaces) - (cfg.y_border.get() * 2) -
-    (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) -
+    // (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) -
     (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + 1 : 0)) / _ctx.y_blocks;
     static_cast<int>(val) > 0)
   {
@@ -438,7 +479,7 @@ void Peaclock::calc_xy_begin()
   }
 
   if (auto const val = ((_ctx.y_block * _ctx.y_blocks) + (cfg.y_space.get() * _ctx.y_spaces) +
-    (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) +
+    // (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) +
     (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + 1 : 0)) / 2;
     val < _ctx.height / 2)
   {
@@ -488,11 +529,11 @@ void Peaclock::fill_binary(std::size_t width, std::size_t col, int num)
   }
 }
 
-void Peaclock::cfg_titlefmt(std::string const& str)
-{
-  cfg.titlefmt = str;
-  cfg.height_titlefmt = OB::String::count(cfg.titlefmt, "\n") + (cfg.titlefmt.size() ? 1 : 0);
-}
+// void Peaclock::cfg_titlefmt(std::string const& str)
+// {
+//   cfg.titlefmt = str;
+//   cfg.height_titlefmt = OB::String::count(cfg.titlefmt, "\n") + (cfg.titlefmt.size() ? 1 : 0);
+// }
 
 void Peaclock::cfg_datefmt(std::string const& str)
 {

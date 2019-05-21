@@ -1253,7 +1253,7 @@ void Tui::get_input()
 
       case 'E':
       {
-        _peaclock.cfg.view = Peaclock::View::digital;
+        _peaclock.cfg.view = Peaclock::View::ascii;
         set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
 
         break;
@@ -1261,13 +1261,21 @@ void Tui::get_input()
 
       case 'R':
       {
-        _peaclock.cfg.view = Peaclock::View::binary;
+        _peaclock.cfg.view = Peaclock::View::digital;
         set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
 
         break;
       }
 
       case 'T':
+      {
+        _peaclock.cfg.view = Peaclock::View::binary;
+        set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
+
+        break;
+      }
+
+      case 'Y':
       {
         _peaclock.cfg.view = Peaclock::View::icon;
         set_status(true, "view " + Peaclock::View::str(_peaclock.cfg.view));
@@ -1745,7 +1753,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
   }
 
   else if (keys.at(0) == "view" && (match_opt = OB::String::match(input,
-    std::regex("^view(?:\\s+(date|digital|binary|icon))?$"))))
+    std::regex("^view(?:\\s+(date|ascii|digital|binary|icon))?$"))))
   {
     auto const match = match_opt.value().at(1);
 

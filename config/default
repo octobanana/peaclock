@@ -63,7 +63,7 @@ mode clock
 
 # set the view type
 # select one of:
-# date, digital, binary, or icon
+# date, ascii, digital, binary, or icon
 view digital
 
 # set the value to adjust with the hjkl;' keys

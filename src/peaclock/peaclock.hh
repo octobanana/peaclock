@@ -96,6 +96,7 @@ public:
     enum Type
     {
       date = 0,
+      ascii,
       digital,
       binary,
       icon,
@@ -105,11 +106,16 @@ public:
     {
       if (type.empty())
       {
-        return digital;
+        return ascii;
       }
 
       switch (type.at(0))
       {
+        case 'a':
+        {
+          return ascii;
+        }
+
         case 'b':
         {
           return binary;
@@ -132,7 +138,7 @@ public:
 
         default:
         {
-          return digital;
+          return ascii;
         }
       }
     }
@@ -144,6 +150,11 @@ public:
         case date:
         {
           return "date";
+        }
+
+        case ascii:
+        {
+          return "ascii";
         }
 
         case digital:
@@ -350,7 +361,7 @@ public:
     bool date {true};
     bool auto_size {true};
     bool auto_ratio {true};
-    bool title {true};
+    // bool title {true};
 
     OB::num_size x_block {2, 1, 64};
     OB::num_size y_block {1, 1, 64};
@@ -364,12 +375,12 @@ public:
     OB::num_size x_space {0, 0, 64};
     OB::num_size y_space {0, 0, 64};
 
-    std::size_t height_titlefmt {0};
+    // std::size_t height_titlefmt {0};
     std::size_t height_datefmt {1};
 
     std::string locale {""};
     std::string timezone {""};
-    std::string titlefmt {""};
+    // std::string titlefmt {""};
     std::string datefmt {"%a %b %d"};
     std::string fill_active {""};
     std::string fill_inactive {""};
@@ -386,13 +397,13 @@ public:
       OB::Color colon_fg {"", OB::Color::Type::fg};
       OB::Color colon_bg {"", OB::Color::Type::bg};
 
-      OB::Color title {"", OB::Color::Type::fg};
+      // OB::Color title {"", OB::Color::Type::fg};
       OB::Color date {"", OB::Color::Type::fg};
       OB::Color background {"", OB::Color::Type::bg};
     } style;
   } cfg;
 
-  void cfg_titlefmt(std::string const& str);
+  // void cfg_titlefmt(std::string const& str);
   void cfg_datefmt(std::string const& str);
   bool cfg_locale(std::string const& lc);
   bool cfg_timezone(std::string const& tz);
@@ -514,10 +525,9 @@ private:
 
     Clock buffer;
 
-    Rect background;
-    Rect title;
+    Rect text;
     Rect block;
-    Rect date;
+    // Rect background;
 
     std::string datefmt;
 
@@ -562,9 +572,10 @@ private:
   void set_clock_digital();
   void set_clock_binary();
 
-  void draw_background(std::size_t const width, std::size_t const height, std::ostringstream& buf);
-  void draw_title(std::ostringstream& buf);
+  // void draw_background(std::size_t const width, std::size_t const height, std::ostringstream& buf);
+  // void draw_title(std::ostringstream& buf);
   void draw_clock(std::ostringstream& buf);
+  void draw_ascii(std::ostringstream& buf);
   void draw_date(std::ostringstream& buf);
 };
 
