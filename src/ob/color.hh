@@ -374,6 +374,7 @@ public:
         }
 
         _key = k;
+        _hsl = HSL {50, 50, 50};
         _hsl.h = random(0, 100);
         _value = _fg ? aec::fg_true(hsl_to_hex(_hsl)) :
           aec::bg_true(hsl_to_hex(_hsl));
