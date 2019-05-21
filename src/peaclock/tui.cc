@@ -642,116 +642,6 @@ void Tui::get_input()
         {
           case Peaclock::Toggle::block:
           {
-            ++_peaclock.cfg.y_block;
-            set_status(true, "block-y " + _peaclock.cfg.y_block.str());
-
-            break;
-          }
-
-          case Peaclock::Toggle::padding:
-          {
-            ++_peaclock.cfg.y_space;
-            set_status(true, "padding-y " + _peaclock.cfg.y_space.str());
-
-            break;
-          }
-
-          case Peaclock::Toggle::margin:
-          {
-            ++_peaclock.cfg.y_border;
-            set_status(true, "margin-y " + _peaclock.cfg.y_border.str());
-
-            break;
-          }
-
-          case Peaclock::Toggle::ratio:
-          {
-            ++_peaclock.cfg.y_ratio;
-            set_status(true, "ratio-y " + _peaclock.cfg.y_ratio.str());
-
-            break;
-          }
-
-          case Peaclock::Toggle::active_fg:
-          {
-            _peaclock.cfg.style.active_fg.sat(_peaclock.cfg.style.active_fg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.active_fg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::active_bg:
-          {
-            _peaclock.cfg.style.active_bg.sat(_peaclock.cfg.style.active_bg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.active_bg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::inactive_fg:
-          {
-            _peaclock.cfg.style.inactive_fg.sat(_peaclock.cfg.style.inactive_fg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.inactive_fg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::inactive_bg:
-          {
-            _peaclock.cfg.style.inactive_bg.sat(_peaclock.cfg.style.inactive_bg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.inactive_bg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::colon_fg:
-          {
-            _peaclock.cfg.style.colon_fg.sat(_peaclock.cfg.style.colon_fg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.colon_fg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::colon_bg:
-          {
-            _peaclock.cfg.style.colon_bg.sat(_peaclock.cfg.style.colon_bg.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.colon_bg.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::date:
-          {
-            _peaclock.cfg.style.date.sat(_peaclock.cfg.style.date.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.date.sat()));
-
-            break;
-          }
-
-          case Peaclock::Toggle::background:
-          {
-            _ctx.style.background.sat(_ctx.style.background.sat() + 0.5);
-            _peaclock.cfg.style.background.sat(_peaclock.cfg.style.background.sat() + 0.5);
-            set_status(true, "sat " + OB::String::to_string(_ctx.style.background.sat()));
-
-            break;
-          }
-
-          default:
-          {
-            break;
-          }
-        }
-
-        break;
-      }
-
-      case 'k':
-      {
-        switch (_peaclock.cfg.toggle)
-        {
-          case Peaclock::Toggle::block:
-          {
             --_peaclock.cfg.y_block;
             set_status(true, "block-y " + _peaclock.cfg.y_block.str());
 
@@ -842,6 +732,116 @@ void Tui::get_input()
           {
             _ctx.style.background.sat(_ctx.style.background.sat() - 0.5);
             _peaclock.cfg.style.background.sat(_peaclock.cfg.style.background.sat() - 0.5);
+            set_status(true, "sat " + OB::String::to_string(_ctx.style.background.sat()));
+
+            break;
+          }
+
+          default:
+          {
+            break;
+          }
+        }
+
+        break;
+      }
+
+      case 'k':
+      {
+        switch (_peaclock.cfg.toggle)
+        {
+          case Peaclock::Toggle::block:
+          {
+            ++_peaclock.cfg.y_block;
+            set_status(true, "block-y " + _peaclock.cfg.y_block.str());
+
+            break;
+          }
+
+          case Peaclock::Toggle::padding:
+          {
+            ++_peaclock.cfg.y_space;
+            set_status(true, "padding-y " + _peaclock.cfg.y_space.str());
+
+            break;
+          }
+
+          case Peaclock::Toggle::margin:
+          {
+            ++_peaclock.cfg.y_border;
+            set_status(true, "margin-y " + _peaclock.cfg.y_border.str());
+
+            break;
+          }
+
+          case Peaclock::Toggle::ratio:
+          {
+            ++_peaclock.cfg.y_ratio;
+            set_status(true, "ratio-y " + _peaclock.cfg.y_ratio.str());
+
+            break;
+          }
+
+          case Peaclock::Toggle::active_fg:
+          {
+            _peaclock.cfg.style.active_fg.sat(_peaclock.cfg.style.active_fg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.active_fg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::active_bg:
+          {
+            _peaclock.cfg.style.active_bg.sat(_peaclock.cfg.style.active_bg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.active_bg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::inactive_fg:
+          {
+            _peaclock.cfg.style.inactive_fg.sat(_peaclock.cfg.style.inactive_fg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.inactive_fg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::inactive_bg:
+          {
+            _peaclock.cfg.style.inactive_bg.sat(_peaclock.cfg.style.inactive_bg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.inactive_bg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::colon_fg:
+          {
+            _peaclock.cfg.style.colon_fg.sat(_peaclock.cfg.style.colon_fg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.colon_fg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::colon_bg:
+          {
+            _peaclock.cfg.style.colon_bg.sat(_peaclock.cfg.style.colon_bg.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.colon_bg.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::date:
+          {
+            _peaclock.cfg.style.date.sat(_peaclock.cfg.style.date.sat() + 0.5);
+            set_status(true, "sat " + OB::String::to_string(_peaclock.cfg.style.date.sat()));
+
+            break;
+          }
+
+          case Peaclock::Toggle::background:
+          {
+            _ctx.style.background.sat(_ctx.style.background.sat() + 0.5);
+            _peaclock.cfg.style.background.sat(_peaclock.cfg.style.background.sat() + 0.5);
             set_status(true, "sat " + OB::String::to_string(_ctx.style.background.sat()));
 
             break;
