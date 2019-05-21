@@ -59,6 +59,8 @@ inline void program_init(Parg& pg)
     {";", "decrease luminosity"},
     {"'", "increase luminosity"},
     {"/", "clear toggled style"},
+    {"<space>", "start/stop timer or stopwatch"},
+    {"<backspace>", "clear timer or stopwatch"},
   }});
 
   pg.info({"Prompt Bindings", {
