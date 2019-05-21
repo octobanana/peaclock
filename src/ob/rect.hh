@@ -9,7 +9,10 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <cstddef>
 
 #include <string>
+#include <vector>
+#include <utility>
 #include <iostream>
+#include <algorithm>
 
 namespace OB
 {
@@ -93,12 +96,11 @@ public:
     auto const ln = OB::String::split(_text, "\n");
     OB::Text::View lnv;
 
-    bool style_main {true};
-
     os
     << aec::clear
     << _color_fg
     << _color_bg;
+    bool style_main {true};
 
     std::size_t y_begin {0};
 
@@ -336,6 +338,9 @@ public:
           // set the view to the current line
           lnv.str(ln.at(row++));
 
+          // line syntax highlighting
+          syntax(lnv);
+
           // total columns in the current line
           auto tcols = lnv.cols();
 
@@ -384,52 +389,75 @@ public:
 
           cursor_right = 0;
 
-          if (tcols <= text_width)
           {
-            lnv.str(lnv.colstr(0, text_width));
+            lnv.str(lnv.colstr(0, tcols <= text_width ? text_width : text_width - 1));
             cols += lnv.cols();
 
-            if (_color_fg.mode() == OB::Color::Mode::party)
+            std::size_t pos_line {0};
+            std::size_t pos_syntax {0};
+
+            for (auto const& e : lnv)
             {
-              for (auto const& e : lnv)
+              // TODO does not handle when syntax pos has multiple equal values
+              if (pos_syntax < _syntax.size() && _syntax.at(pos_syntax).first == pos_line)
               {
-                os << e << _color_fg.step();
+                os << _highlight.at(_syntax.at(pos_syntax).second).second << e << aec::clear;
+                ++pos_syntax;
+                style_main = false;
+              }
+              else
+              {
+                if (! style_main)
+                {
+                  os
+                  << _color_fg
+                  << _color_bg;
+                  style_main = ! style_main;
+                }
+
+                os << e;
+
+                if (_color_fg.mode() == OB::Color::Mode::party)
+                {
+                  _color_fg.step();
+                }
+              }
+
+              ++pos_line;
+            }
+
+            if (tcols <= text_width)
+            {
+              while (cols < text_width)
+              {
+                ++cursor_right;
+                ++cols;
               }
             }
             else
             {
-              for (auto const& e : lnv)
+              while (cols + 1 < text_width)
               {
-                os << e;
+                ++cursor_right;
+                ++cols;
               }
-            }
 
-            while (cols < text_width)
-            {
-              ++cursor_right;
+              if (! style_main)
+              {
+                os
+                << _color_fg
+                << _color_bg;
+                style_main = ! style_main;
+              }
+
+              os
+              << aec::cursor_right(cursor_right)
+              << ">";
+
+              cursor_right = 0;
+
               ++cols;
             }
-          }
-          else
-          {
-            lnv.str(lnv.colstr(0, text_width - 1));
-            cols += lnv.cols();
-
-            os << lnv;
-
-            while (cols + 1 < text_width)
-            {
-              ++cursor_right;
-              ++cols;
-            }
-
-            os
-            << aec::cursor_right(cursor_right)
-            << ">";
-
-            cursor_right = 0;
-
-            ++cols;
           }
 
           // subtract 1 to counter the for loops ++x condition
@@ -453,6 +481,13 @@ public:
         }
       }
     }
+
+    return *this;
+  }
+
+  Rect& highlight(std::vector<std::pair<std::string, OB::Color>> const& hl)
+  {
+    _highlight = hl;
 
     return *this;
   }
@@ -553,6 +588,35 @@ public:
 
 private:
 
+  void syntax(OB::Text::View const& view)
+  {
+    _syntax.clear();
+
+    std::size_t pos {0};
+    OB::Text::Regex search;
+
+    for (auto const& [regex, color] : _highlight)
+    {
+      search.match(regex, view.str());
+
+      if (! search.empty())
+      {
+        for (auto const& match : search)
+        {
+          _syntax.emplace_back(view.byte_to_char(match.pos), pos);
+        }
+      }
+
+      ++pos;
+    }
+
+    std::sort(_syntax.begin(), _syntax.end(),
+    [](auto const& lhs, auto const& rhs)
+    {
+      return lhs.first < rhs.first;
+    });
+  }
+
   std::size_t _x {0};
   std::size_t _y {0};
 
@@ -572,6 +636,8 @@ private:
 
   // text
   OB::Text::String _text;
+  std::vector<std::pair<std::size_t, std::size_t>> _syntax;
+  std::vector<std::pair<std::string, OB::Color>> _highlight;
 
   // border
   bool _border_top {false};
