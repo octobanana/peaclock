@@ -1,5 +1,5 @@
 peaclock
-  A responsive and customizable clock for the terminal.
+  A responsive and customizable clock, timer, and stopwatch for the terminal.
 
 Usage
   peaclock [--config-dir <dir>] [--config|-u <file>] [<file>] [--colour <on|off|auto>]
@@ -32,14 +32,26 @@ Key Bindings
     enter the command prompt
   <esc>
     clear prompt status message
+  <space>
+    start/stop timer or stopwatch
+  <backspace>
+    clear timer or stopwatch
   w
-    mode date
+    mode clock
   e
-    mode digital
+    mode timer
   r
-    mode binary
-  t
-    mode icon
+    mode stopwatch
+  W
+    view date
+  E
+    view ascii
+  R
+    view digital
+  T
+    view binary
+  Y
+    view icon
   a
     toggle 24 hour time
   s
@@ -77,15 +89,17 @@ Key Bindings
   h
     decrease x or hue value
   j
-    increase y or saturation value
-  k
     decrease y or saturation value
+  k
+    increase y or saturation value
   l
     increase x or hue value
   ;
     decrease luminosity
   '
     increase luminosity
+  /
+    clear toggled style
 
 Prompt Bindings
   <esc>, <ctrl-c>
@@ -117,15 +131,48 @@ Commands
     quit the program
   exit
     quit the program
+  help <search>
+    search or view the help output
+  mkconfig <file>
+    create 'file' and write the current config settings to it
+  mkconfig! <file>
+    overwrite or create 'file' and write the current config settings to it
   mode <value>
+    clock
+      the view will display the current time
+    timer
+      the view will display the timer
+    stopwatch
+      the view will display the stopwatch
+  view <value>
     date
       display only the date
+    ascii
+      display the ascii clock with the date
     digital
       display the digital clock with the date
     binary
       display the binary clock with the date
     icon
       display the icon with the date
+  stopwatch <value>
+    clear
+      clear the stopwatch
+    stop
+      stop the stopwatch
+    start
+      start the stopwatch
+    00h:00m:00s
+      set the initial start time
+  timer <value>
+    clear
+      clear the timer to the initial value
+    stop
+      stop the timer
+    start
+      start the timer
+    00h:00m:00s
+      set the initial start time
   rate-input <milliseconds>
     set the duration in milliseconds between reading user input
   rate-refresh <milliseconds>
@@ -151,6 +198,9 @@ Commands
   fill-colon <str>
     set the string value used to fill the colon blocks of the clock, an empty
     string clears the value
+  timer-exec <str>
+    set the string value to be executed by a shell upon timer completion, an
+    empty string clears the value
   toggle <value>
     block
       adjust x y block with hjkl
@@ -209,6 +259,8 @@ Commands
     set the x ratio size
   ratio-y <y>
     set the y ratio size
+  date-padding <value>
+    set the padding size between the date and the clock
   set <value> <on|off>
     hour-24
       use 24 hour time
