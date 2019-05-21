@@ -228,6 +228,9 @@ inline void program_init(Parg& pg)
     {"ratio-y <y>", {
       {"", "set the y ratio size"},
     }},
+    {"date-padding <value>", {
+      {"", "set the padding size between the date and the clock"},
+    }},
     {"set <value> <on|off>", {
       {"hour-24",
         "use 24 hour time"},

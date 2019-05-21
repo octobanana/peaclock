@@ -375,6 +375,8 @@ public:
     OB::num_size x_space {0, 0, 64};
     OB::num_size y_space {0, 0, 64};
 
+    OB::num_size date_padding {1, 0, 64};
+
     // std::size_t height_titlefmt {0};
     std::size_t height_datefmt {1};
 

@@ -39,6 +39,9 @@ ratio 2 1
 # ratio-x 2
 # ratio-y 1
 
+# set the padding size between the date and the clock
+date-padding 1
+
 # set the string value used to fill the active, inactive, and colon blocks of
 # the clock, an empty string clears the value
 fill ''

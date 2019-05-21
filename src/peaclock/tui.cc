@@ -205,6 +205,7 @@ bool Tui::mkconfig(std::string path, bool overwrite)
   << "padding " << _peaclock.cfg.x_space.str() << " " << _peaclock.cfg.y_space.str() << "\n"
   << "margin " << _peaclock.cfg.x_border.str() << " " << _peaclock.cfg.y_border.str() << "\n"
   << "ratio " << _peaclock.cfg.x_ratio.str() << " " << _peaclock.cfg.y_ratio.str() << "\n"
+  << "date-padding " << _peaclock.cfg.date_padding.str() << "\n"
   << "set date " << btos(_peaclock.cfg.date) << "\n"
   << "set seconds " << btos(_peaclock.cfg.seconds) << "\n"
   << "set hour-24 " << btos(_peaclock.cfg.hour_24) << "\n"
@@ -1857,6 +1858,21 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     else
     {
       _peaclock.cfg.toggle = Peaclock::Toggle::enm(match);
+    }
+  }
+
+  else if (keys.at(0) == "date-padding" && (match_opt = OB::String::match(input,
+    std::regex("^date-padding(?:\\s+([0-9]+))?$"))))
+  {
+    auto const x = match_opt.value().at(1);
+
+    if (x.empty())
+    {
+      return std::make_pair(true, "date-padding " + _peaclock.cfg.date_padding.str());
+    }
+    else
+    {
+      _peaclock.cfg.date_padding = std::stoul(x);
     }
   }
 
