@@ -133,9 +133,6 @@ inline void program_init(Parg& pg)
       {"00h:00m:00s",
         "set the initial start time"},
     }},
-    {"timer-exec <str>", {
-      {"", "set the string value to be executed by a shell upon timer completion, an empty string clears the value"},
-    }},
     {"rate-input <milliseconds>", {
       {"", "set the duration in milliseconds between reading user input"},
     }},
@@ -165,6 +162,9 @@ inline void program_init(Parg& pg)
     }},
     {"fill-colon <str>", {
       {"", "set the string value used to fill the colon blocks of the clock, an empty string clears the value"},
+    }},
+    {"timer-exec <str>", {
+      {"", "set the string value to be executed by a shell upon timer completion, an empty string clears the value"},
     }},
     {"toggle <value>", {
       {"block",
