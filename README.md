@@ -1,5 +1,5 @@
 # Peaclock
-A responsive and customizable clock for the terminal.
+A responsive and customizable clock, timer, and stopwatch for the terminal.
 
 [![peaclock](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/peaclock.png)](https://octobanana.com/software/peaclock/blob/assets/peaclock.mp4#file)
 
@@ -23,19 +23,22 @@ Click the above image to view a video of __Peaclock__ in action.
 * [License](#license)
 
 ## About
-__Peaclock__ is a responsive and customizable clock for the terminal.
+__Peaclock__ is a responsive and customizable clock, timer, and stopwatch for the terminal.
 
-It can display either a digital or binary clock.
-The clock can be customized, such as changing the width,
-height, colour, padding, and margin. When in auto size mode,
+The clock output changes depending on the selected mode and view. The mode
+determines the clock value, while the view determines how that value is
+presented. The clock, timer, and stopwatch modes can be displayed with an ascii,
+digital, or binary clock view. The clock can be customized, such as changing
+the width, height, colour, padding, and margin. When in auto size mode,
 the clock becomes responsive, filling up the full size of the terminal.
 The clock can also be set to conform to a specific aspect ratio,
 allowing the clock to auto resize without becoming stretched.
 
 ### Features
-* display a digital clock
-* display a binary clock
+* clock, timer, and stopwatch modes
+* ascii, digital, and binary clock views
 * display a custom date string
+* execute a shell command upon timer completion
 * set a specific locale
 * set a specific timezone
 * auto size the clock to fit the width and height of the terminal
@@ -90,11 +93,13 @@ and any third party libraries used.
 
 ### Dependencies
 * __C++17__ compiler/library
+* __PThread__
 * __CMake__ >= 3.8
 * __ICU__ >= 62.1
 
 ### Linked Libraries
 * __stdc++fs__ (libstdc++fs) included in the C++17 Standard Library
+* __pthread__ (libpthread)
 * __icuuc__ (libicuuc) part of the ICU library
 * __icui18n__ (libicui18n) part of the ICU library
 
