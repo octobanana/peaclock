@@ -1671,7 +1671,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     {
       if (match.size() == 2)
       {
-        _peaclock.cfg.locale = "";
+        _peaclock.cfg_locale("");
       }
       else if (! _peaclock.cfg_locale(match.substr(1, match.size() - 2)))
       {
@@ -1693,7 +1693,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     {
       if (match.size() == 2)
       {
-        _peaclock.cfg.timezone = "";
+        _peaclock.cfg_timezone("");
       }
       else if (! _peaclock.cfg_timezone(match.substr(1, match.size() - 2)))
       {
@@ -1715,7 +1715,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     {
       if (match.size() == 2)
       {
-        _peaclock.cfg.datefmt = "";
+        _peaclock.cfg_datefmt("");
       }
       else
       {
