@@ -240,7 +240,7 @@ void Peaclock::draw_clock(std::ostringstream& buf)
 void Peaclock::draw_ascii(std::ostringstream& buf)
 {
   std::size_t const y = ([&]() {
-    return (_ctx.height / 2) - ((1 + (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() + 1 : 0)) / 2);
+    return (_ctx.height / 2) - ((1 + (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() : 0)) / 2);
   })();
   _ctx.y += y;
 
@@ -272,7 +272,7 @@ void Peaclock::draw_date(std::ostringstream& buf)
         return _ctx.y + cfg.date_padding.get() + 1;
       }
 
-      return _ctx.y + 1 - cfg.y_space.get();
+      return _ctx.y + cfg.date_padding.get() - cfg.y_space.get();
     })();
 
     _ctx.text.xy_max(_ctx.width + 1, _ctx.height + 1);
@@ -387,7 +387,7 @@ void Peaclock::calc_xy_block()
 
   if (auto const val = (_ctx.height - (cfg.y_space.get() * _ctx.y_spaces) - (cfg.y_border.get() * 2) -
     // (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) -
-    (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() + 1 : 0)) / _ctx.y_blocks;
+    (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() : 0)) / _ctx.y_blocks;
     static_cast<int>(val) > 0)
   {
     _ctx.y_block = val;
@@ -484,7 +484,7 @@ void Peaclock::calc_xy_begin()
 
   if (auto const val = ((_ctx.y_block * _ctx.y_blocks) + (cfg.y_space.get() * _ctx.y_spaces) +
     // (cfg.title && cfg.height_titlefmt ? cfg.height_titlefmt + 1 : 0) +
-    (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() + 1 : 0)) / 2;
+    (cfg.date && cfg.height_datefmt ? cfg.height_datefmt + cfg.date_padding.get() : 0)) / 2;
     val < _ctx.height / 2)
   {
     _ctx.y_begin = (_ctx.height / 2) - val;
