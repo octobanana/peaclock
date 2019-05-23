@@ -148,7 +148,8 @@ std::string Readline::operator()(bool& is_running)
   std::string utf8;
 
   bool loop {true};
-  bool save_input {true};
+  bool save_local {true};
+  bool save_file {true};
   bool clear_input {false};
   auto wait {std::chrono::milliseconds(50)};
 
@@ -173,6 +174,7 @@ std::string Readline::operator()(bool& is_running)
         {
           // exit the command prompt
           loop = false;
+          save_file = false;
           clear_input = true;
 
           break;
@@ -189,7 +191,8 @@ std::string Readline::operator()(bool& is_running)
         {
           // exit the command prompt
           loop = false;
-          save_input = false;
+          save_file = false;
+          save_local = false;
           clear_input = true;
 
           break;
@@ -289,11 +292,20 @@ std::string Readline::operator()(bool& is_running)
 
   auto res = normalize(_input.str);
 
-  if (save_input)
+  if (! res.empty())
   {
-    hist_push(res);
-    hist_save(res);
+    if (save_local)
+    {
+      hist_push(res);
+    }
+
+    if (save_file && _input.str.str().front() != ' ')
+    {
+      hist_save(res);
+    }
   }
+
+  hist_reset();
 
   if (clear_input)
   {
@@ -693,17 +705,20 @@ void Readline::hist_search(std::string const& str)
 
 void Readline::hist_push(std::string const& str)
 {
-  if (! str.empty() && ! (! _history().empty() && _history().back() == str))
+  if (_history().empty())
   {
-    if (auto pos = std::find(_history().begin(), _history().end(), str); pos != _history().end())
+    _history().emplace_front(str);
+  }
+  else if (_history().back() != str)
+  {
+    if (auto pos = std::find(_history().begin(), _history().end(), str);
+      pos != _history().end())
     {
       _history().erase(pos);
     }
 
     _history().emplace_front(str);
   }
-
-  hist_reset();
 }
 
 void Readline::hist_load(fs::path const& path)
