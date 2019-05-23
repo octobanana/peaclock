@@ -1675,7 +1675,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
       else if (! _peaclock.cfg_locale(match.substr(1, match.size() - 2)))
       {
-        return std::make_pair(false, "error: invalid locale '" + match + "'");
+        return std::make_pair(false, "error: invalid locale '" + match.substr(1, match.size() - 2) + "'");
       }
     }
   }
@@ -1697,7 +1697,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
       else if (! _peaclock.cfg_timezone(match.substr(1, match.size() - 2)))
       {
-        return std::make_pair(false, "error: invalid timezone '" + match + "'");
+        return std::make_pair(false, "error: invalid timezone '" + match.substr(1, match.size() - 2) + "'");
       }
     }
   }
