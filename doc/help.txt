@@ -8,14 +8,14 @@ Usage
   peaclock [--license] [--colour <on|off|auto>]
 
 Options
-  --colour=<on|off|auto>
+  --colour=<on|off|auto> [auto]
     Print the program info output with colour either on, off, or auto based on
     if stdout is a tty.
-  -u, --config=<file>
+  -u, --config=<file> []
     Use the commands in the config file 'file' for initialization. All other
     initializations are skipped. To skip all initializations, use the special
     name 'NONE'.
-  --config-dir=<dir>
+  --config-dir=<dir> []
     use 'dir' as the config directory. To skip all initializations, use the
     special name 'NONE'.
   -h, --help
