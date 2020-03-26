@@ -407,6 +407,12 @@ public:
               }
               else
               {
+                if (_color_fg.mode() == OB::Color::Mode::party)
+                {
+                  _color_fg.step();
+                  style_main = ! style_main;
+                }
+
                 if (! style_main)
                 {
                   os
@@ -416,11 +422,6 @@ public:
                 }
 
                 os << e;
-
-                if (_color_fg.mode() == OB::Color::Mode::party)
-                {
-                  _color_fg.step();
-                }
               }
 
               ++pos_line;
