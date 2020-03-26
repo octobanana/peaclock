@@ -35,7 +35,9 @@ namespace fs = std::filesystem;
 using std::string_literals::operator""s;
 
 // bool to string
-#define btos(x) ("off\0on"+4*!!(x))
+static constexpr char const* btos(bool const x) {
+  return x ? "on" : "off";
+}
 
 Tui::Tui(Parg const& parg) :
   _pg {parg},
