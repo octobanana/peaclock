@@ -89,7 +89,7 @@ private:
     {
       struct Result
       {
-        Result(std::size_t s, std::size_t i):
+        Result(std::size_t s, std::size_t i) noexcept :
           score {s},
           idx {i}
         {
