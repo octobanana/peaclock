@@ -40,7 +40,7 @@ void Peaclock::init_ctx(std::size_t const width, std::size_t const height)
 
   if (cfg.view != View::date && cfg.view != View::ascii)
   {
-    --_ctx.height;
+    // --_ctx.height;
 
     // set the buffer to a template
     if (cfg.view == View::digital)
