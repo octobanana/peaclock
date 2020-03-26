@@ -1,5 +1,5 @@
 # peaclock
-# default config
+# octobanana config
 #
 # The config file in the config directory must be named 'config'.
 # It is a plain text file that can contain any of the commands listed
@@ -16,15 +16,15 @@
 
 # set the x y block size, the width and height of an individual block composing
 # the clock
-block 2 1
-# block-x 2
+block 1 1
+# block-x 1
 # block-y 1
 
 # set the x y padding size, the width and height of the space between each
 # individual block composing the clock
 padding 0 0
-# padding-x 2
-# padding-y 1
+# padding-x 0
+# padding-y 0
 
 # set the x y margin size, the space around the outside of the clock from the
 # edge of the terminal
@@ -35,8 +35,8 @@ margin 0 0
 # set the x y ratio size, auto adjust the clock to conform to a specific
 # aspect ratio, keep in mind that a square ratio would be '2 1' due to a
 # terminal character cell having a height around twice the size of its width
-ratio 2 1
-# ratio-x 2
+ratio 1 1
+# ratio-x 1
 # ratio-y 1
 
 # set the padding size between the date and the clock
@@ -57,7 +57,7 @@ locale ''
 timezone ''
 
 # set the date format string, an empty string clears the value
-date '%a %b %d'
+date 'OCTOBANANA\n%a %d %b - %I:%M:%S %P'
 
 # set the mode type
 # select one of:
@@ -67,13 +67,13 @@ mode clock
 # set the view type
 # select one of:
 # date, ascii, digital, binary, or icon
-view digital
+view icon
 
 # set the value to adjust with the hjkl;' keys
 # select one of:
 # block, padding, margin, ratio, active-fg, inactive-fg, colon-fg,
 # active-bg, inactive-bg, colon-bg, background, or date
-toggle active-bg
+toggle padding
 
 # set the stopwatch to start
 # clear, stop, start, 00h:00m:00s
@@ -91,10 +91,10 @@ timer-exec 'notify-send -a peaclock "timer complete"'
 rate-input 50
 
 # set the duration in milliseconds between redrawing the output
-rate-refresh 1000
+rate-refresh 250
 
 # set the duration in milliseconds to display status messages
-rate-status 5000
+rate-status 3000
 
 # -----------------------------------------------------------------------------
 # toggles
@@ -150,31 +150,31 @@ style inactive-fg clear
 
 # set the style of the text set by the command 'fill-colon' used to draw colon
 # blocks in the clock
-style colon-fg clear
+style colon-fg #808080
 
 # set the style of the background used to draw active blocks in the clock
-style active-bg reverse
+style active-bg party
 
 # set the style of the background used to draw inactive blocks in the clock
 style inactive-bg clear
 
 # set the style of the background used to draw colon blocks in the clock
-style colon-bg clear
-
-# set the style of the background used to draw colon blocks in the clock
-style date clear
-
-# set the style of the background
-style background clear
+style colon-bg #424957
 
 # set the style of the date
-style text clear
+style date #c0c0c0
+
+# set the style of the background
+style background #1b1e24
+
+# set the style of the text
+style text #4feae7
 
 # set the style of the command prompt symbol shown at the start of the line
-style prompt clear
+style prompt #424957
 
 # set the style of the prompt status on success
-style success green
+style success #89e051
 
 # set the style of the prompt status on error
-style error red
+style error #f34b7d
