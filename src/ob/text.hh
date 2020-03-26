@@ -42,7 +42,7 @@ public:
 
   struct Ctx
   {
-    Ctx(size_type bytes_, size_type tcols_, size_type cols_, string_view str_) :
+    Ctx(size_type bytes_, size_type tcols_, size_type cols_, string_view str_) noexcept :
       bytes {bytes_},
       tcols {tcols_},
       cols {cols_},
