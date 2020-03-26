@@ -639,7 +639,6 @@ private:
   std::string _key {"clear"};
   std::string _value;
 
-  bool _rainbow;
   Mode::Type _mode {Mode::null};
   HSL _hsl {50, 50, 50};
 }; // Color
