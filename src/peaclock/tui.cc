@@ -2281,8 +2281,8 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
 
   else if (keys.size() >= 2 && keys.at(0) == "set")
   {
-    if (match_opt = OB::String::match(input,
-      std::regex("^set\\s+date(?:\\s+(true|false|t|f|1|0|on|off))?$")))
+    if ((match_opt = OB::String::match(input,
+            std::regex("^set\\s+date(?:\\s+(true|false|t|f|1|0|on|off))?$"))))
     {
       auto const match = match_opt.value().at(1);
 
@@ -2300,8 +2300,8 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
     }
 
-    else if (match_opt = OB::String::match(input,
-      std::regex("^set\\s+seconds(?:\\s+(true|false|t|f|1|0|on|off))?$")))
+    else if ((match_opt = OB::String::match(input,
+            std::regex("^set\\s+seconds(?:\\s+(true|false|t|f|1|0|on|off))?$"))))
     {
       auto const match = match_opt.value().at(1);
 
@@ -2319,8 +2319,8 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
     }
 
-    else if (match_opt = OB::String::match(input,
-      std::regex("^set\\s+hour-24(?:\\s+(true|false|t|f|1|0|on|off))?$")))
+    else if ((match_opt = OB::String::match(input,
+            std::regex("^set\\s+hour-24(?:\\s+(true|false|t|f|1|0|on|off))?$"))))
     {
       auto const match = match_opt.value().at(1);
 
@@ -2338,8 +2338,8 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
     }
 
-    else if (match_opt = OB::String::match(input,
-      std::regex("^set\\s+auto-size(?:\\s+(true|false|t|f|1|0|on|off))?$")))
+    else if ((match_opt = OB::String::match(input,
+            std::regex("^set\\s+auto-size(?:\\s+(true|false|t|f|1|0|on|off))?$"))))
     {
       auto const match = match_opt.value().at(1);
 
@@ -2357,8 +2357,8 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
       }
     }
 
-    else if (match_opt = OB::String::match(input,
-      std::regex("^set\\s+auto-ratio(?:\\s+(true|false|t|f|1|0|on|off))?$")))
+    else if ((match_opt = OB::String::match(input,
+            std::regex("^set\\s+auto-ratio(?:\\s+(true|false|t|f|1|0|on|off))?$"))))
     {
       auto const match = match_opt.value().at(1);
 
