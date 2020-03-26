@@ -1,7 +1,7 @@
 # Peaclock
 A responsive and customizable clock, timer, and stopwatch for the terminal.
 
-[![peaclock](https://raw.githubusercontent.com/octobanana/peaclock/master/assets/peaclock.png)](https://octobanana.com/software/peaclock/blob/assets/peaclock.mp4#file)
+[![peaclock](https://raw.githubusercontent.com/octobanana/peaclock/master/res/peaclock.png)](https://octobanana.com/software/peaclock/blob/res/peaclock.mp4#file)
 
 Click the above image to view a video of __Peaclock__ in action.
 
@@ -12,10 +12,11 @@ Click the above image to view a video of __Peaclock__ in action.
 * [Binary Clock](#binary-clock)
 * [Terminal Compatibility](#terminal-compatibility)
 * [Pre-Build](#pre-build)
+  * [Environments](#environments)
+  * [Compilers](#compilers)
   * [Dependencies](#dependencies)
   * [Linked Libraries](#linked-libraries)
   * [Included Libraries](#included-libraries)
-  * [Environment](#environment)
   * [macOS](#macos)
 * [Build](#build)
 * [Install](#install)
@@ -53,7 +54,7 @@ allowing the clock to auto resize without becoming stretched.
 
 ## Usage
 View the usage and help output with the `--help` or `-h` flag,
-or `./help.txt` to view the help output as a plain text file.
+or `./doc/help.txt` to view the help output as a plain text file.
 
 ## Binary Clock
 The following is a short guide explaining how to read the binary clock.
@@ -91,60 +92,63 @@ and any third party libraries used.
 > Any shell commands using relative paths are expected to be executed in the
 > root directory of this repository.
 
-### Dependencies
-* __C++17__ compiler/library
-* __PThread__
-* __CMake__ >= 3.8
-* __ICU__ >= 62.1
-
-### Linked Libraries
-* __stdc++fs__ (libstdc++fs) included in the C++17 Standard Library
-* __pthread__ (libpthread)
-* __icuuc__ (libicuuc) part of the ICU library
-* __icui18n__ (libicui18n) part of the ICU library
-
-### Included Libraries
-* [__parg__](https://github.com/octobanana/parg):
-  for parsing CLI args, included as `./src/ob/parg.hh`
-
-### Environment
+### Environments
 * __Linux__ (supported)
 * __BSD__ (supported)
 * __macOS__ (supported)
 
+### Compilers
+* __GCC__ >= 8.0.0 (supported)
+* __Clang__ >= 7.0.0 (supported)
+* __Apple Clang__ >= 11.0.0 (untested)
+
+### Dependencies
+* __CMake__ >= 3.8
+* __PThread__
+* __ICU__ >= 62.1
+
+### Linked Libraries
+* __pthread__ (libpthread) POSIX threads library
+* __icuuc__ (libicuuc) part of the ICU library
+* __icui18n__ (libicui18n) part of the ICU library
+
+### Included Libraries
+* [__Parg__](https://github.com/octobanana/parg):
+  for parsing CLI args, modified and included as `./src/ob/parg.hh`
+
 ### macOS
-Using a new version of __gcc__ or __llvm__ is __required__, as the default
-__Apple llvm compiler__ does __not__ support C++17 Standard Library features such as `std::filesystem`.
+Using a new version of __GCC__ or __Clang__ is __required__, as the default
+__Apple Clang compiler__ does __not__ support C++17 Standard Library features such as `std::filesystem`.
 
 A new compiler can be installed through a third-party package manager such as __Brew__.
 Assuming you have __Brew__ already installed, the following commands should install
-the latest __gcc__.
+the latest __GCC__.
 
-```
+```sh
 brew install gcc
 brew link gcc
 ```
 
-The following line will then need to be appended to the CMakeLists.txt file.
-Replace the placeholder `<path-to-g++>` with the canonical path to the new __g++__ compiler binary.
+The following CMake argument will then need to be appended to the end of the line when running the shell script.
+Remember to replace the placeholder `<path-to-g++>` with the canonical path to the new __g++__ compiler binary.
 
-```
-set (CMAKE_CXX_COMPILER <path-to-g++>)
+```sh
+./RUNME.sh build -- -DCMAKE_CXX_COMPILER='<path-to-g++>'
 ```
 
 ## Build
-The following shell command will build the project in release mode:
+The included shell script will build the project in release mode using the `build` subcommand:
+
 ```sh
-./build.sh
+./RUNME.sh build
 ```
-To build in debug mode, run the script with the `--debug` flag.
 
 ## Install
-The following shell command will install the project in release mode:
+The included shell script will install the project in release mode using the `install` subcommand:
+
 ```sh
-./install.sh
+./RUNME.sh install
 ```
-To install in debug mode, run the script with the `--debug` flag.
 
 ## Configuration
 Config Directory (DIR): `${HOME}/.peaclock`  
@@ -173,10 +177,28 @@ The following shell commands will create the config directory
 in the default location and copy over the example config file:
 ```sh
 mkdir -pv ~/.peaclock
-cp -uv ./config/default ~/.peaclock/config
+cp -uv ./cfg/default ~/.peaclock/config
 ```
 
-Several config file examples can be found in the `./config` directory.
+Several config file examples can be found in the `./cfg` directory.
+
+### default
+[![default](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/default.png)](https://github.com/octobanana/peaclock/blob/master/cfg/default)
+
+### octobanana
+[![octobanana](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/octobanana.png)](https://github.com/octobanana/peaclock/blob/master/cfg/octobanana)
+
+### digital
+[![digital](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/digital.png)](https://github.com/octobanana/peaclock/blob/master/cfg/digital)
+
+### digital-party
+[![digital-party](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/digital-party.png)](https://github.com/octobanana/peaclock/blob/master/cfg/digital-party)
+
+### binary
+[![binary](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/binary.png)](https://github.com/octobanana/peaclock/blob/master/cfg/binary)
+
+### binary-party
+[![binary-party](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/binary-party.png)](https://github.com/octobanana/peaclock/blob/master/cfg/binary-party)
 
 ## License
 This project is licensed under the MIT License.
