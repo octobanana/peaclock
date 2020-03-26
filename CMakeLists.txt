@@ -46,7 +46,7 @@ SOFTWARE.
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
 set (OB_TARGET "peaclock")
-set (OB_VERSION "0.4.0")
+set (OB_VERSION "0.4.1")
 set (OB_SOURCES
   src/main.cc
   src/ob/string.cc
