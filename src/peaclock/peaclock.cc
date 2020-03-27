@@ -4,6 +4,7 @@
 using Rect = OB::Rect;
 
 #include "ob/string.hh"
+#include "ob/text.hh"
 #include "ob/term.hh"
 namespace aec = OB::Term::ANSI_Escape_Codes;
 
@@ -69,6 +70,11 @@ void Peaclock::init_ctx(std::size_t const width, std::size_t const height)
     // init block
     _ctx.block.xy_max(_ctx.width + 1, _ctx.height + 1);
     _ctx.block.wh(_ctx.x_block, _ctx.y_block);
+
+    // init fill
+    _ctx.fill_active = set_fill(cfg.fill_active);
+    _ctx.fill_inactive = set_fill(cfg.fill_inactive);
+    _ctx.fill_colon = set_fill(cfg.fill_colon);
 
     // set starting coordinates
     _ctx.x = _ctx.x_begin;
@@ -154,9 +160,7 @@ void Peaclock::draw_clock(std::ostringstream& buf)
 
           if (! cfg.fill_inactive.empty())
           {
-            _ctx.block.text(OB::String::repeat(_ctx.y_block,
-              OB::String::repeat(_ctx.x_block, cfg.fill_inactive)
-              .substr(0, _ctx.x_block) + "\n"));
+            _ctx.block.text(_ctx.fill_inactive);
           }
 
           buf << _ctx.block;
@@ -181,9 +185,7 @@ void Peaclock::draw_clock(std::ostringstream& buf)
 
           if (! cfg.fill_active.empty())
           {
-            _ctx.block.text(OB::String::repeat(_ctx.y_block,
-              OB::String::repeat(_ctx.x_block, cfg.fill_active)
-              .substr(0, _ctx.x_block) + "\n"));
+            _ctx.block.text(_ctx.fill_active);
           }
 
           buf << _ctx.block;
@@ -208,9 +210,7 @@ void Peaclock::draw_clock(std::ostringstream& buf)
 
           if (! cfg.fill_colon.empty())
           {
-            _ctx.block.text(OB::String::repeat(_ctx.y_block,
-              OB::String::repeat(_ctx.x_block, cfg.fill_colon)
-              .substr(0, _ctx.x_block) + "\n"));
+            _ctx.block.text(_ctx.fill_colon);
           }
 
           buf << _ctx.block;
@@ -365,6 +365,14 @@ void Peaclock::extract_digits(int const num, int& t0, int& t1) const
     t0 = num / 10;
     t1 = num % 10;
   }
+}
+
+std::string Peaclock::set_fill(std::string const& fill) const
+{
+  auto ln = OB::String::repeat(_ctx.x_block, fill);
+  OB::Text::View lnv;
+  lnv.str(ln);
+  return OB::String::repeat(_ctx.y_block, std::string(lnv.colstr(0, _ctx.x_block)) + "\n");
 }
 
 void Peaclock::calc_xy_block()

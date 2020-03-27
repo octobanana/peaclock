@@ -531,6 +531,10 @@ private:
     Rect block;
     // Rect background;
 
+    std::string fill_active;
+    std::string fill_inactive;
+    std::string fill_colon;
+
     std::string datefmt;
 
     std::size_t x {0};
@@ -559,6 +563,7 @@ private:
   std::size_t count_x_blocks(Clock const& clock) const;
   std::size_t count_y_blocks(Clock const& clock) const;
   void extract_digits(int const num, int& t0, int& t1) const;
+  std::string set_fill(std::string const& fill) const;
 
   void init_ctx(std::size_t const width, std::size_t const height);
 
