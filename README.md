@@ -200,6 +200,9 @@ Several config file examples can be found in the `./cfg` directory.
 ### binary-party
 [![binary-party](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/binary-party.png)](https://github.com/octobanana/peaclock/blob/master/cfg/binary-party)
 
+### binary-unicode
+[![binary-unicode](https://raw.githubusercontent.com/octobanana/peaclock/master/res/cfg/binary-unicode.png)](https://github.com/octobanana/peaclock/blob/master/cfg/binary-unicode)
+
 ## License
 This project is licensed under the MIT License.
 
