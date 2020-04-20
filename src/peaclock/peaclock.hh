@@ -363,6 +363,9 @@ public:
     bool auto_ratio {true};
     // bool title {true};
 
+    bool digitalization {true};
+    int digitalization_percent {0};
+
     OB::num_size x_block {2, 1, 64};
     OB::num_size y_block {1, 1, 64};
 
@@ -410,8 +413,8 @@ public:
   bool cfg_locale(std::string const& lc);
   bool cfg_timezone(std::string const& tz);
 
-  OB::Timer timer;
-  OB::Timer stopwatch;
+  OB::Timer<> timer;
+  OB::Timer<> stopwatch;
 
 private:
 

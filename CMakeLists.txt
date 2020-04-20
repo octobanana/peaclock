@@ -59,6 +59,8 @@ set (OB_LINK_LIBRARIES
   pthread
   icuuc
   icui18n
+  sfml-audio
+  sfml-system
 )
 set (OB_INCLUDE_DIRECTORIES
   ./src
@@ -121,6 +123,13 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "debug")
   endif ()
 endif ()
 
+set (OB_BOOST_VERSION "1.72.0")
+set (OB_BOOST_LIBRARIES coroutine)
+find_package (Boost ${OB_BOOST_VERSION} COMPONENTS ${OB_BOOST_LIBRARIES} REQUIRED)
+if (NOT Boost_FOUND)
+  message (FATAL_ERROR "-- The Boost libraries could not be found")
+endif ()
+
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -145,6 +154,7 @@ target_include_directories (
 
 target_link_libraries (${OB_TARGET}
   ${OB_LINK_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 install (TARGETS ${OB_TARGET} DESTINATION bin)

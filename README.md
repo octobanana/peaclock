@@ -106,11 +106,16 @@ and any third party libraries used.
 * __CMake__ >= 3.8
 * __PThread__
 * __ICU__ >= 62.1
+* __Boost__ >= 1.72
+* __SFML__ >= 2.5.1
 
 ### Linked Libraries
 * __pthread__ (libpthread) POSIX threads library
 * __icuuc__ (libicuuc) part of the ICU library
 * __icui18n__ (libicui18n) part of the ICU library
+* __boost_coroutine__ (libboost_coroutine) part of the Boost library
+* __sfml-audio__ (libsfml-audio) part of the SFML library
+* __sfml-system__ (libsfml-system) part of the SFML library
 
 ### Included Libraries
 * [__Parg__](https://github.com/octobanana/parg):

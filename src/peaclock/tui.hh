@@ -2,17 +2,20 @@
 #define TUI_HH
 
 #include "peaclock/peaclock.hh"
+#include "peaclock/microphone.hh"
 
 #include "ob/parg.hh"
-using Parg = OB::Parg;
-
 #include "ob/num.hh"
 #include "ob/color.hh"
 #include "ob/readline.hh"
 #include "ob/string.hh"
 #include "ob/text.hh"
 #include "ob/term.hh"
-namespace aec = OB::Term::ANSI_Escape_Codes;
+#include "ob/timer.hh"
+#include "ob/belle/io.hh"
+#include "ob/belle/signal.hh"
+
+#include <boost/asio.hpp>
 
 #include <cstdio>
 #include <cstddef>
@@ -24,9 +27,26 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 #include <sstream>
 #include <utility>
 #include <optional>
-
 #include <filesystem>
+
+using Parg = OB::Parg;
+using Tick = std::chrono::nanoseconds;
+using Clock = std::chrono::steady_clock;
+using Readline = OB::Readline;
+using Timer = OB::Belle::asio::steady_timer;
+using Read = OB::Belle::IO::Read;
+using Key = OB::Belle::IO::Read::Key;
+using Mouse = OB::Belle::IO::Read::Mouse;
+
 namespace fs = std::filesystem;
+namespace asio = boost::asio;
+namespace Term = OB::Term;
+namespace Belle = OB::Belle;
+namespace iom = OB::Term::iomanip;
+namespace aec = OB::Term::ANSI_Escape_Codes;
+
+using namespace std::chrono_literals;
+using namespace std::string_literals;
 
 class Tui
 {
@@ -41,6 +61,17 @@ public:
   void run();
 
 private:
+  void winch();
+  void screen_init();
+  void screen_deinit();
+  void await_signal();
+  void render(double const delta);
+  void on_tick();
+  void await_tick();
+  void await_read();
+  bool on_read(Read::Null& ctx);
+  bool on_read(Read::Mouse& ctx);
+  bool on_read(Read::Key& ctx);
 
   void get_input();
   bool press_to_continue(std::string const& str = "ANY KEY", char32_t val = 0);
@@ -50,6 +81,9 @@ private:
 
   void event_loop();
   int screen_size();
+
+  void init_mic();
+  int get_digitalization();
 
   void clear();
   void refresh();
@@ -62,6 +96,26 @@ private:
   void set_status(bool success, std::string const& msg);
 
   bool mkconfig(std::string path, bool overwrite = false);
+
+  asio::io_context _io {1};
+  Belle::Signal _sig {_io};
+  Read _read {_io};
+
+  Tick _time {0ms};
+  OB::Timer<Clock> _tick_timer;
+  std::chrono::time_point<Clock> _tick_begin {(Clock::time_point::min)()};
+  std::chrono::time_point<Clock> _tick_end {(Clock::time_point::min)()};
+  int _fps {30};
+  int _fps_actual {0};
+  int _fps_dropped {0};
+  Tick _tick {static_cast<Tick>(1000000000 / _fps)};
+  Timer _timer {_io};
+
+  double _threshold_min {-90.0};
+  double _threshold_max {0.0};
+  double _digitalization_band_curr {_threshold_min};
+
+  Microphone _mic;
 
   Parg const& _pg;
   bool const _colorterm;
@@ -84,6 +138,7 @@ private:
 
     // output buffer
     std::ostringstream buf;
+    std::string sbuf;
 
     // control when to exit the event loop
     bool is_running {true};

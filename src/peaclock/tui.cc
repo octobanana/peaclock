@@ -39,6 +39,29 @@ static constexpr char const* btos(bool const x) {
   return x ? "on" : "off";
 }
 
+template<typename T>
+T scale(T const val, T const in_min, T const in_max, T const out_min, T const out_max) {
+  assert(in_min <= in_max);
+  assert(out_min <= out_max);
+  return (out_min + (out_max - out_min) * ((val - in_min) / (in_max - in_min)));
+}
+
+template<typename T>
+T scale_log(T const val, T const in_min, T const in_max, T const out_min, T const out_max) {
+  assert(in_min <= in_max);
+  assert(out_min <= out_max);
+  auto n = (out_min + (out_max - out_min) * ((val - in_min) / (in_max - in_min)));
+  auto b = std::log(out_max / out_min) / (out_max - out_min);
+  auto a = out_max / std::exp(b * out_max);
+  auto v = a * std::exp(b * n);
+  return v;
+}
+
+template<typename T>
+T lerp(T const a, T const b, T const t) {
+  return a + t * (b - a);
+}
+
 Tui::Tui(Parg const& parg) :
   _pg {parg},
   _colorterm {OB::Term::is_colorterm()}
@@ -192,7 +215,7 @@ bool Tui::mkconfig(std::string path, bool overwrite)
   << "view " << Peaclock::View::str(_peaclock.cfg.view) << "\n"
   << "toggle " << Peaclock::Toggle::str(_peaclock.cfg.toggle) << "\n"
   << "stopwatch start\n"
-  << "timer " << OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds) << "\n"
+  << "timer " << OB::Timer<>::sec_to_str(_peaclock.cfg.timer_seconds) << "\n"
   << "timer-exec '" << OB::String::escape(_peaclock.cfg.timer_exec) << "'\n"
   << "date '" << OB::String::escape(_peaclock.cfg.datefmt) << "'\n"
   << "locale '" << _peaclock.cfg.locale << "'\n"
@@ -232,30 +255,192 @@ bool Tui::mkconfig(std::string path, bool overwrite)
   return true;
 }
 
-void Tui::run()
-{
+void Tui::screen_init() {
   std::cout
   << aec::cursor_hide
   << aec::screen_push
   << aec::cursor_hide
+  // << aec::mouse_enable
+  // << aec::focus_enable
   << aec::screen_clear
   << aec::cursor_home
-  << aec::mouse_enable
   << std::flush;
-
-  // set terminal mode to raw
-  _term_mode.set_min(0);
   _term_mode.set_raw();
+}
 
-  // start the event loop
-  event_loop();
-
+void Tui::screen_deinit() {
   std::cout
-  << aec::mouse_disable
+  // << aec::focus_disable
+  // << aec::mouse_disable
   << aec::nl
   << aec::screen_pop
   << aec::cursor_show
   << std::flush;
+  _term_mode.set_cooked();
+}
+
+void Tui::await_tick() {
+  auto const delta = std::chrono::duration_cast<Tick>(_tick - _tick_timer.time<Tick>());
+  if (delta >= 0ms) {
+    _timer.expires_at(_tick_timer.end() + delta);
+  }
+  else {
+    _timer.expires_at(_tick_timer.end() + (_tick - (_tick_timer.time<Tick>() % _tick)));
+  }
+  _timer.async_wait([&](auto ec) {
+    if (ec) {return;}
+    on_tick();
+  });
+}
+
+void Tui::on_tick() {
+  if (!_ctx.is_running) {
+    _io.stop();
+    return;
+  }
+
+  _tick_end = Clock::now();
+  auto delta = std::chrono::duration_cast<Tick>(_tick_end - _tick_begin);
+  _time += delta;
+  _tick_begin = _tick_end;
+  if (delta.count() > 0) {
+    _fps_actual = static_cast<int>(std::round(1000000000.0 / delta.count()));
+  }
+  if (delta > _tick) {
+    int const dropped {static_cast<int>((delta.count() / _tick.count())) - 1};
+    _fps_dropped += dropped;
+  }
+
+  _tick_timer.clear();
+  _tick_timer.start(_tick_begin);
+
+  // TODO handle invalid screen size
+  // TODO fill char doesn't work with digitalization
+
+  if (_peaclock.cfg.digitalization) {
+    _peaclock.cfg.digitalization_percent = get_digitalization();
+  }
+
+  clear();
+  draw();
+  refresh();
+
+  _tick_timer.stop();
+  await_tick();
+}
+
+void Tui::await_signal() {
+  _sig.on_signal({SIGINT, SIGTERM}, [&](auto const& ec, auto sig) {
+    // std::cerr << "\nEvent: " << Belle::Signal::str(sig) << "\n";
+    _io.stop();
+  });
+
+  _sig.on_signal(SIGWINCH, [&](auto const& ec, auto sig) {
+    // std::cerr << "\nEvent: " << Belle::Signal::str(sig) << "\n";
+    // std::cout << aec::screen_clear << aec::cursor_home;
+    winch();
+    _sig.wait();
+  });
+
+  _sig.on_signal(SIGTSTP, [&](auto const& ec, auto sig) {
+    // std::cerr << "\nEvent: " << Belle::Signal::str(sig) << "\n";
+    _sig.wait();
+    kill(getpid(), SIGSTOP);
+  });
+
+  _sig.on_signal(SIGCONT, [&](auto const& ec, auto sig) {
+    // std::cerr << "\nEvent: " << Belle::Signal::str(sig) << "\n";
+    _sig.wait();
+  });
+
+  _sig.wait();
+}
+
+void Tui::await_read() {
+  _read.on_read([&](auto const& ctx) {
+    bool found {false};
+    auto nctx = ctx;
+    std::visit([&](auto& e) {found = on_read(e);}, nctx);
+    std::ostringstream os;
+    os << std::boolalpha << found;
+    if (!found) {
+    }
+  });
+
+  _read.run();
+}
+
+bool Tui::on_read(Read::Null& ctx) {
+  // TODO log error
+  return true;
+}
+
+bool Tui::on_read(Read::Mouse& ctx) {
+  // ctx.pos.x -= 1;
+  // ctx.pos.y = _size.y - ctx.pos.y;
+  return false;
+}
+
+bool Tui::on_read(Read::Key& ctx) {
+  switch (ctx.ch) {
+    case OB::Term::ctrl_key('c'): {
+      kill(getpid(), SIGINT);
+      return true;
+    }
+    case OB::Term::ctrl_key('z'): {
+      kill(getpid(), SIGTSTP);
+      return true;
+    }
+    case OB::Term::ctrl_key('l'): {
+      winch();
+      return true;
+    }
+  }
+
+  _ctx.keys.emplace_back(OB::Text::Char32(ctx.ch, ctx.str));
+  get_input();
+
+  return false;
+}
+
+void Tui::winch() {
+  Term::size(_ctx.width, _ctx.height);
+}
+
+void Tui::init_mic() {
+  if (_peaclock.cfg.digitalization) {
+    if (! _mic.isAvailable()) {
+      throw std::runtime_error("recording device is unavailable");
+    }
+    _mic.setChannelCount(1);
+    _mic.setDevice(_mic.getDefaultDevice());
+    // _mic.setDevice(_mic.getAvailableDevices().at(1));
+    _mic.setProcessingInterval(sf::milliseconds(30));
+  }
+}
+
+void Tui::run()
+{
+  await_signal();
+  await_read();
+  init_mic();
+  OB::Term::size(_ctx.width, _ctx.height);
+  screen_init();
+  await_tick();
+  _mic.start();
+  _io.run();
+  _mic.stop();
+  screen_deinit();
+}
+
+int Tui::get_digitalization() {
+  auto bands = _mic.getBands();
+  auto digitalization_band = std::max(std::max(bands.sub_bass.val, bands.bass.val), _threshold_min);
+  if (_digitalization_band_curr != digitalization_band) {
+    _digitalization_band_curr = lerp(_digitalization_band_curr, digitalization_band, 0.20);
+  }
+  int const s {static_cast<std::size_t>(scale_log(_digitalization_band_curr, _threshold_min, _threshold_max, 0.1, 100.0))};
+  return std::max(s, 1);
 }
 
 void Tui::event_loop()
@@ -344,15 +529,34 @@ void Tui::clear()
   << aec::cursor_home;
 }
 
+static void write(std::string& str) {
+  if (str.empty()) {return;}
+  int num {0};
+  char const* ptr {str.data()};
+  std::size_t size {str.size()};
+  while (size > 0 && static_cast<std::size_t>(num = ::write(STDIN_FILENO, ptr, size)) != size) {
+    if (num < 0) {
+      if (errno == EINTR || errno == EAGAIN) {continue;}
+      throw std::runtime_error("write failed");
+    }
+    size -= static_cast<std::size_t>(num);
+    ptr += static_cast<std::size_t>(num);
+  }
+  str.clear();
+}
+
 void Tui::refresh()
 {
   // output buffer to screen
-  std::cout
-  << _ctx.buf.str()
-  << std::flush;
+  _ctx.sbuf = _ctx.buf.str();
+  write(_ctx.sbuf);
+  // std::cout
+  // << _ctx.buf.str()
+  // << std::flush;
 
   // clear output buffer
   _ctx.buf.str("");
+  _ctx.sbuf.clear();
 }
 
 void Tui::draw()
@@ -449,10 +653,7 @@ void Tui::set_status(bool success, std::string const& msg)
 
 void Tui::get_input()
 {
-  if ((_ctx.key.val = OB::Term::get_key(&_ctx.key.str)) > 0)
-  {
-    _ctx.keys.emplace_back(_ctx.key);
-
+  while (_ctx.keys.size()) {
     switch (_ctx.keys.at(0).val)
     {
       // quit
@@ -1372,7 +1573,7 @@ void Tui::get_input()
           {
             if (_peaclock.timer.seconds() >= _peaclock.cfg.timer_seconds)
             {
-              _peaclock.timer.reset();
+              _peaclock.timer.clear();
               _peaclock.cfg.timer_notify = false;
               set_status(true, "timer clear");
             }
@@ -1408,7 +1609,7 @@ void Tui::get_input()
         {
           case Peaclock::Mode::timer:
           {
-            _peaclock.timer.reset();
+            _peaclock.timer.clear();
             _peaclock.cfg.timer_notify = false;
             set_status(true, "timer clear");
 
@@ -1417,7 +1618,7 @@ void Tui::get_input()
 
           case Peaclock::Mode::stopwatch:
           {
-            _peaclock.stopwatch.reset();
+            _peaclock.stopwatch.clear();
             set_status(true, "stopwatch clear");
 
             break;
@@ -1443,13 +1644,11 @@ void Tui::get_input()
       }
     }
 
-    clear();
-    draw();
-    refresh();
+    // clear();
+    // draw();
+    // refresh();
     _ctx.keys.clear();
   }
-
-  while (OB::Term::get_key(&_ctx.key.str) > 0);
 }
 
 std::optional<std::pair<bool, std::string>> Tui::command(std::string const& input)
@@ -1520,20 +1719,20 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
 
     if (match.empty())
     {
-      return std::make_pair(true, "timer " + OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds));
-      // return std::make_pair(true, "timer " + OB::Timer::sec_to_str(_peaclock.cfg.timer_seconds - _peaclock.timer.seconds()));
+      return std::make_pair(true, "timer " + OB::Timer<>::sec_to_str(_peaclock.cfg.timer_seconds));
+      // return std::make_pair(true, "timer " + OB::Timer<>::sec_to_str(_peaclock.cfg.timer_seconds - _peaclock.timer.seconds()));
     }
 
     if (match == "clear")
     {
-      _peaclock.timer.reset();
+      _peaclock.timer.clear();
       _peaclock.cfg.timer_notify = false;
     }
     else if (match == "start")
     {
       if (_peaclock.timer.seconds() >= _peaclock.cfg.timer_seconds)
       {
-        _peaclock.timer.reset();
+        _peaclock.timer.clear();
         _peaclock.cfg.timer_notify = false;
       }
 
@@ -1545,9 +1744,9 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
     }
     else
     {
-      _peaclock.timer.reset();
+      _peaclock.timer.clear();
       _peaclock.cfg.timer_notify = false;
-      _peaclock.cfg.timer_seconds = OB::Timer::str_to_sec(match);
+      _peaclock.cfg.timer_seconds = OB::Timer<>::str_to_sec(match);
     }
   }
 
@@ -1563,7 +1762,7 @@ std::optional<std::pair<bool, std::string>> Tui::command(std::string const& inpu
 
     if (match == "clear")
     {
-      _peaclock.stopwatch.reset();
+      _peaclock.stopwatch.clear();
     }
     else if (match == "start")
     {

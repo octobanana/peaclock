@@ -1,3 +1,48 @@
+/*
+                                    88888888
+                                  888888888888
+                                 88888888888888
+                                8888888888888888
+                               888888888888888888
+                              888888  8888  888888
+                              88888    88    88888
+                              888888  8888  888888
+                              88888888888888888888
+                              88888888888888888888
+                             8888888888888888888888
+                          8888888888888888888888888888
+                        88888888888888888888888888888888
+                              88888888888888888888
+                            888888888888888888888888
+                           888888  8888888888  888888
+                           888     8888  8888     888
+                                   888    888
+
+                                   OCTOBANANA
+
+Licensed under the MIT License
+
+Copyright (c) 2019 Brett Robinson <https://octobanana.com/>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #ifndef OB_TIMER_HH
 #define OB_TIMER_HH
 
@@ -10,10 +55,12 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 namespace OB
 {
 
+template<typename Clock = std::chrono::steady_clock>
 class Timer
 {
 public:
@@ -27,8 +74,16 @@ public:
 
   Timer& start()
   {
+    start(Clock::now());
+
+    return *this;
+  }
+
+  Timer& start(std::chrono::time_point<Clock> const& now)
+  {
     _is_running = true;
-    _start = std::chrono::high_resolution_clock::now();
+    _start = now;
+    _begin = _start;
 
     return *this;
   }
@@ -41,10 +96,13 @@ public:
     return *this;
   }
 
-  Timer& reset()
+  Timer& clear()
   {
     _is_running = false;
     _total = {};
+    _start = {};
+    _begin = {};
+    _end = {};
 
     return *this;
   }
@@ -53,16 +111,24 @@ public:
   {
     if (_is_running)
     {
-      update();
-      _is_running = false;
+      stop();
     }
     else
     {
-      _is_running = true;
-      _start = std::chrono::high_resolution_clock::now();
+      start();
     }
 
     return *this;
+  }
+
+  std::chrono::time_point<Clock> begin()
+  {
+    return _begin;
+  }
+
+  std::chrono::time_point<Clock> end()
+  {
+    return _end;
   }
 
   template<typename T>
@@ -73,7 +139,7 @@ public:
       update();
     }
 
-    return std::chrono::duration_cast<T>(_total);
+    return std::chrono::time_point_cast<T>(_total).time_since_epoch();
   }
 
   std::tuple<int, int, int> diff(long int const sec)
@@ -96,6 +162,17 @@ public:
     }
 
     return std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count();
+  }
+
+  template<typename T>
+  std::size_t get()
+  {
+    if (_is_running)
+    {
+      update();
+    }
+
+    return static_cast<std::size_t>(std::chrono::time_point_cast<T>(_total).time_since_epoch().count());
   }
 
   std::tuple<int, int, int> hms()
@@ -124,8 +201,8 @@ public:
 
   void str(std::string const& str)
   {
-    reset();
-    _total = std::chrono::time_point<std::chrono::high_resolution_clock>(string_to_seconds(str));
+    clear();
+    _total = std::chrono::time_point<Clock>(string_to_seconds(str));
   }
 
   static long int str_to_sec(std::string const& str)
@@ -298,9 +375,10 @@ private:
 
   void update()
   {
-    auto const stop = std::chrono::high_resolution_clock::now();
+    auto const stop = Clock::now();
+    _end = stop;
 
-    if (stop > _start)
+    if (stop >= _start)
     {
       _total += (stop - _start);
     }
@@ -309,8 +387,10 @@ private:
   }
 
   bool _is_running {false};
-  std::chrono::time_point<std::chrono::high_resolution_clock> _start;
-  std::chrono::time_point<std::chrono::high_resolution_clock> _total;
+  std::chrono::time_point<Clock> _start;
+  std::chrono::time_point<Clock> _total;
+  std::chrono::time_point<Clock> _begin;
+  std::chrono::time_point<Clock> _end;
 }; // class Timer
 
 } // namespace OB

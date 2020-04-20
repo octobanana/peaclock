@@ -130,11 +130,12 @@ void Peaclock::draw_clock(std::ostringstream& buf)
     {
       set_clock_binary();
     }
-
     // draw blocks
     for (std::size_t i = 0; i < _ctx.buffer.size(); ++i)
     {
-      auto const type = _ctx.buffer.at(i);
+      auto type = _ctx.buffer.at(i);
+
+      _ctx.block.digitalize(0);
 
       switch (type)
       {
@@ -187,6 +188,8 @@ void Peaclock::draw_clock(std::ostringstream& buf)
           {
             _ctx.block.text(_ctx.fill_active);
           }
+
+          _ctx.block.digitalize(cfg.digitalization_percent);
 
           buf << _ctx.block;
 

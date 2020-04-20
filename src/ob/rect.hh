@@ -8,6 +8,7 @@ namespace aec = OB::Term::ANSI_Escape_Codes;
 
 #include <cstddef>
 
+#include <random>
 #include <string>
 #include <vector>
 #include <utility>
@@ -43,6 +44,13 @@ public:
     obj.draw(os);
 
     return os;
+  }
+
+  Rect& digitalize(int const val)
+  {
+    _digitalization_percent = val;
+
+    return *this;
   }
 
   Rect& draw(std::ostream& os)
@@ -472,12 +480,37 @@ public:
           }
           else
           {
-            os
-            << aec::cursor_right(cursor_right)
-            << _color_fg.step()
-            << _fill;
+            if (_digitalization_percent > 0)
+            {
+              os
+              << aec::cursor_right(cursor_right);
 
-            cursor_right = 0;
+              if (random_range(1, 60) > _digitalization_percent)
+              {
+                os
+                << aec::clear
+                << " ";
+              }
+              else
+              {
+                os
+                << _color_fg.step()
+                << _color_bg
+                << _fill;
+              }
+              os
+              << _color_fg
+              << _color_bg;
+            }
+            else
+            {
+              os
+              << aec::cursor_right(cursor_right)
+              << _color_fg.step()
+              << _fill;
+
+              cursor_right = 0;
+            }
           }
         }
       }
@@ -589,6 +622,14 @@ public:
 
 private:
 
+  template<typename T = std::size_t>
+  T random_range(T l, T u) const {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<T> distr(l, u);
+    return distr(gen);
+  }
+
   void syntax(OB::Text::View const& view)
   {
     _syntax.clear();
@@ -631,6 +672,7 @@ private:
   std::size_t _h {0};
 
   std::string _fill {" "};
+  int _digitalization_percent {0};
 
   OB::Color _color_fg {OB::Color::Type::fg};
   OB::Color _color_bg {OB::Color::Type::bg};
