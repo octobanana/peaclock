@@ -83,7 +83,7 @@ public:
       update();
     }
 
-    long int const now {std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count()};
+    long int const now {static_cast<long int>(std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count())};
 
     return seconds_to_hms(sec - now);
   }
@@ -95,7 +95,7 @@ public:
       update();
     }
 
-    return std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count();
+    return static_cast<long int>(std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count());
   }
 
   std::tuple<int, int, int> hms()
@@ -105,7 +105,7 @@ public:
       update();
     }
 
-    long int const diff {std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count()};
+    long int const diff {static_cast<long int>(std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count())};
 
     return seconds_to_hms(diff);
   }
@@ -117,7 +117,7 @@ public:
       update();
     }
 
-    long int const diff {std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count()};
+    long int const diff {static_cast<long int>(std::chrono::time_point_cast<std::chrono::seconds>(_total).time_since_epoch().count())};
 
     return seconds_to_string(diff);
   }
